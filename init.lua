@@ -1,7 +1,7 @@
 --GPLv3, derived from Travelnet by Sokomine
 local SPEED = 10
 local ACCEL = 1
-local VERSION = 5
+local VERSION = 6
 
 local elevator = {
     motors = {},
