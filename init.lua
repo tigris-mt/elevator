@@ -145,7 +145,7 @@ local function unbuild(pos, add)
         p2.y = p2.y + add
         local motorhash = locate_motor(p2)
         build_motor(motorhash)
-        if boxes[motorhash] and minetest.string_to_pos(motorhash).y >= boxes[motorhash]:getpos().y then
+        if boxes[motorhash] and p2.y >= boxes[motorhash]:getpos().y then
             boxes[motorhash] = nil
         end
     end, table.copy(pos))
@@ -175,6 +175,7 @@ for _,mode in ipairs({"on", "off"}) do
 local nodename = "elevator:elevator_"..mode
 local on = (mode == "on")
 local box
+local cbox
 if on then
     box = {
 
@@ -186,6 +187,8 @@ if on then
         { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
         { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
+    cbox = box
+    cbox[5] = nil
 else
     box = {
 
@@ -202,6 +205,7 @@ else
         --{ -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
         --{ -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
+    cbox = box
 end
 minetest.register_node(nodename, {
     description = "Elevator",
@@ -220,7 +224,7 @@ minetest.register_node(nodename, {
 
     collision_box = {
             type = "fixed",
-            fixed = box,
+            fixed = cbox,
     },
 
     node_box = {
