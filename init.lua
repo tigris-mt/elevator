@@ -1,4 +1,3 @@
---GPLv3, derived from Travelnet by Sokomine
 local SPEED = 10
 local ACCEL = 1
 local VERSION = 6
@@ -186,7 +185,6 @@ if on then
         {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
         {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
 
-        --groundplate to stand on
         { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
         { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
@@ -199,14 +197,6 @@ else
         {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
         {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
         {-0.5 , -0.5, -0.48, 0.5, 1.5, -0.5},
-        --{-0.5 , -0.5, -0.48, -0.4, 1.5, -0.5},
-        --{-0.2 , -0.5, -0.48, -0.1, 1.5, -0.5},
-        --{0.1 , -0.5, -0.48, 0.2, 1.5, -0.5},
-        --{0.4 , -0.5, -0.48, 0.5, 1.5, -0.5},
-
-        --groundplate to stand on
-        --{ -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
-        --{ -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
     cbox = box
 end
@@ -214,11 +204,9 @@ minetest.register_node(nodename, {
     description = "Elevator",
     drawtype = (on and "mesh" or "nodebox"),
     mesh = "travelnet_elevator.obj",
-    --drawtype = "nodebox",
     sunlight_propagates = false,
     paramtype = 'light',
     paramtype2 = "facedir",
-    --wield_scale = {x=0.6, y=0.6, z=0.6},
 
     selection_box = {
             type = "fixed",
@@ -250,7 +238,6 @@ minetest.register_node(nodename, {
             "elevator_box.png",
             "elevator_box.png",
     },
-    --inventory_image = "travelnet_elevator_inv.png",
     groups = {cracky=1, choppy=1, snappy=1},
     drop = "elevator:elevator_off",
 
@@ -459,12 +446,6 @@ local box = {
     {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
     {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
     {-0.5 , -0.5, -0.48, 0.5, 1.5, -0.5},
-    --{-0.5 , -0.5, -0.48, -0.4, 1.5, -0.5},
-    --{-0.2 , -0.5, -0.48, -0.1, 1.5, -0.5},
-    --{0.1 , -0.5, -0.48, 0.2, 1.5, -0.5},
-    --{0.4 , -0.5, -0.48, 0.5, 1.5, -0.5},
-
-    --groundplate to stand on
     { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
     { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
 }
