@@ -111,6 +111,9 @@ local function build_motor(hash)
             .."dropdown[0,0;3;target;"..table.concat(tpnames, ",")..";1]"
             .."button_exit[0,1;3,1;go;Go]")
         meta:set_int("version", VERSION)
+        if meta:get_string("formspec") ~= "" then
+            meta:set_string("formspec", "")
+        end
         if meta:get_string("motor") ~= hash then
             build_motor(meta:get_string("motor"))
         end
