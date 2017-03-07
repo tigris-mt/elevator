@@ -8,6 +8,26 @@ local elevator = {
 }
 local boxes = {}
 local formspecs = {}
+local lastpp = {}
+local time = 0
+minetest.register_globalstep(function(dtime)
+    time = time + dtime
+    if time < 0.5 then
+        return
+    end
+    time = 0
+    for _,p in ipairs(minetest.get_connected_players()) do
+        local pos = p:getpos()
+        if minetest.get_node(pos).name ~= "elevator:elevator_on" then
+            lastpp[p:get_player_name()] = pos
+        end
+    end
+end)
+minetest.register_on_leaveplayer(function(player)
+    if lastpp[player:get_player_name()] and vector.distance(lastpp[player:get_player_name()], player:getpos()) < 20 then
+        player:setpos(lastpp[player:get_player_name()])
+    end
+end)
 local elevator_file = minetest.get_worldpath() .. "/elevator"
 
 local function load_elevator()
@@ -123,7 +143,11 @@ local function unbuild(pos, add)
     end
     minetest.after(0.01, function(p2)
         p2.y = p2.y + add
-        build_motor(locate_motor(p2))
+        local motorhash = locate_motor(p2)
+        build_motor(motorhash)
+        if boxes[motorhash] and minetest.string_to_pos(motorhash).y >= boxes[motorhash]:getpos().y then
+            boxes[motorhash] = nil
+        end
     end, table.copy(pos))
 end
 
@@ -141,10 +165,7 @@ minetest.register_node("elevator:motor", {
         build_motor(phash(pos))
     end,
     on_destruct = function(pos)
-        if boxes[phash(pos)] then
-            boxes[phash(pos)]:remove()
-            boxes[phash(pos)] = nil
-        end
+        boxes[phash(pos)] = nil
         elevator.motors[phash(pos)] = nil
         save_elevator()
     end,
@@ -178,8 +199,8 @@ else
         --{0.4 , -0.5, -0.48, 0.5, 1.5, -0.5},
 
         --groundplate to stand on
-        { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
-        { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
+        --{ -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
+        --{ -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
 end
 minetest.register_node(nodename, {
@@ -284,8 +305,11 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if not pos then
         return
     end
+    local meta = minetest.get_meta(pos)
+    if vector.distance(sender:get_pos(), pos) > 1 or boxes[meta:get_string("motor")] then
+        return
+    end
     if fields.go then
-        local meta = minetest.get_meta(pos)
         local motorhash = meta:get_string("motor")
         local motor = elevator.motors[motorhash]
         if not motor then
@@ -327,6 +351,17 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
             obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
             boxes[motorhash] = obj
+
+            for _,p in ipairs(motor.elevators) do
+                local p = minetest.string_to_pos(p)
+                for _,object in ipairs(minetest.get_objects_inside_radius(p, 2)) do
+                    if object.is_player and object:is_player() and minetest.get_node(object:getpos()).name == "elevator:elevator_on" then
+                        if object:get_player_name() ~= obj:get_luaentity().attached then
+                            object:setpos(lastpp[sender:get_player_name()])
+                        end
+                    end
+                end
+            end
         else
             minetest.chat_send_player(sender:get_player_name(), "This target is invalid.")
             return true
@@ -488,6 +523,11 @@ local box_entity = {
         if not minetest.get_player_by_name(self.attached) then
             self.object:remove()
             boxes[self.motor] = nil
+            return
+        end
+        if not boxes[self.motor] then
+            minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
+            self.object:remove()
             return
         end
         local pos = self.object:getpos()
