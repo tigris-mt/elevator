@@ -487,7 +487,6 @@ minetest.register_node("elevator:elevator_box", {
 
 local box_entity = {
     physical = false,
-    --collisionbox = {-0.5, -0.5, -0.5, 0.5, 0.5, 0.5},
     collisionbox = {0,0,0,0,0,0},
     visual = "wielditem",
     mesh = "carts_cart.b3d",
