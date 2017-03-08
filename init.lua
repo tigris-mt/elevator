@@ -1,6 +1,6 @@
 local SPEED = 10
 local ACCEL = 0.1
-local VERSION = 6
+local VERSION = 7
 
 local elevator = {
     motors = {},
@@ -80,6 +80,7 @@ local function build_motor(hash)
     p.y = p.y - 1
     motor.elevators = {}
     motor.pnames = {}
+    motor.labels = {}
     while true do
         local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
         if node.name == "elevator:shaft" then
@@ -90,6 +91,7 @@ local function build_motor(hash)
             if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 table.insert(motor.elevators, phash(p))
                 table.insert(motor.pnames, tostring(p.y))
+                table.insert(motor.labels, "")
                 p.y = p.y - 1
                 need_saving = true
             else
@@ -101,12 +103,10 @@ local function build_motor(hash)
         local pos = minetest.string_to_pos(m)
         local meta = minetest.get_meta(pos)
         meta:set_int("version", VERSION)
-        if meta:get_string("formspec") ~= "" then
-            meta:set_string("formspec", "")
-        end
         if meta:get_string("motor") ~= hash then
             build_motor(meta:get_string("motor"))
         end
+        motor.labels[i] = meta:get_string("label")
         meta:set_string("motor", hash)
     end
     if need_saving then
@@ -153,6 +153,7 @@ minetest.register_node("elevator:motor", {
         elevator.motors[phash(pos)] = {
             elevators = {},
             pnames = {},
+            labels = {},
         }
         save_elevator()
         build_motor(phash(pos))
@@ -268,21 +269,27 @@ minetest.register_node(nodename, {
             end
             local formspec
             local tpnames = {}
+            local tpnames_l = {}
             local motorhash = meta:get_string("motor")
             local motor = elevator.motors[motorhash]
             for ji,jv in ipairs(motor.pnames) do
                 if tonumber(jv) ~= pos.y then
                     table.insert(tpnames, jv)
+                    table.insert(tpnames_l, (motor.labels[ji] and motor.labels[ji] ~= "") and (jv.." - "..motor.labels[ji]) or jv)
                 end
             end
             formspecs[sender:get_player_name()] = {pos, tpnames}
             if #tpnames > 0 then
-                formspec = "size[4,5]"
+                formspec = "size[4,6]"
                 .."label[0,0;Click once to travel.]"
-                .."textlist[-0.1,0.5;4,4.5;target;"..table.concat(tpnames, ",").."]"
+                .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
+                .."field[0.25,5.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                .."button_exit[-0.05,5.5;4,1;setlabel;Set label]"
             else
-                formspec = "size[4,1]"
+                formspec = "size[4,2]"
                 .."label[0,0;No targets available.]"
+                .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
             end
             minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
         elseif not elevator.motors[meta:get_string("motor")] then
@@ -305,11 +312,20 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     end
     local pos = formspecs[sender:get_player_name()] and formspecs[sender:get_player_name()][1] or nil
     if not pos then
-        return
+        return true
     end
     local meta = minetest.get_meta(pos)
+    if fields.setlabel then
+        if minetest.is_protected(pos, sender:get_player_name()) then
+            return true
+        end
+        meta:set_string("label", fields.label)
+        local motorhash = meta:get_string("motor")
+        build_motor(elevator.motors[motorhash] and motorhash or locate_motor(pos))
+        return true
+    end
     if vector.distance(sender:get_pos(), pos) > 1 or boxes[meta:get_string("motor")] then
-        return
+        return true
     end
     if fields.target then
         minetest.after(0.1, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", "")
