@@ -1,5 +1,5 @@
 local SPEED = 10
-local ACCEL = 1
+local ACCEL = 0.1
 local VERSION = 6
 
 local elevator = {
@@ -548,13 +548,6 @@ local box_entity = {
             end
         end
         self.lastpos = pos
-        if vector.distance(pos, self.target) < 32 and self.object:getvelocity().y > SPEED/2 then
-            self.object:setacceleration({x=0, y=((SPEED)*self.vmult*-1), z=0})
-        elseif self.object:getvelocity().y > SPEED and vector.distance(pos, self.target) < math.min(100, vector.distance(pos, self.start)) then
-            self.object:setacceleration({x=0, y=((SPEED/10)*self.vmult*-1), z=0})
-        elseif self.object:getvelocity().y <= SPEED/1.5 then
-            self.object:setacceleration({x=0, y=((SPEED/10)*self.vmult), z=0})
-        end
     end,
 }
 
