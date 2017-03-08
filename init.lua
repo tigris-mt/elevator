@@ -98,17 +98,8 @@ local function build_motor(hash)
         end
     end
     for i,m in ipairs(motor.elevators) do
-        local tpnames = {}
         local pos = minetest.string_to_pos(m)
         local meta = minetest.get_meta(pos)
-        for ji,jv in ipairs(motor.pnames) do
-            if ji ~= i then
-                table.insert(tpnames, jv)
-            end
-        end
-        meta:set_string("elevator_formspec", "size[3,2]"
-            .."dropdown[0,0;3;target;"..table.concat(tpnames, ",")..";1]"
-            .."button_exit[0,1;3,1;go;Go]")
         meta:set_int("version", VERSION)
         if meta:get_string("formspec") ~= "" then
             meta:set_string("formspec", "")
@@ -275,8 +266,25 @@ minetest.register_node(nodename, {
                 minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
                 return
             end
-            formspecs[sender:get_player_name()] = pos
-            minetest.show_formspec(sender:get_player_name(), "elevator:elevator", meta:get_string("elevator_formspec"))
+            local formspec
+            local tpnames = {}
+            local motorhash = meta:get_string("motor")
+            local motor = elevator.motors[motorhash]
+            for ji,jv in ipairs(motor.pnames) do
+                if tonumber(jv) ~= pos.y then
+                    table.insert(tpnames, jv)
+                end
+            end
+            formspecs[sender:get_player_name()] = {pos, tpnames}
+            if #tpnames > 0 then
+                formspec = "size[4,5]"
+                .."label[0,0;Click once to travel.]"
+                .."textlist[-0.1,0.5;4,4.5;target;"..table.concat(tpnames, ",").."]"
+            else
+                formspec = "size[4,1]"
+                .."label[0,0;No targets available.]"
+            end
+            minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
         elseif not elevator.motors[meta:get_string("motor")] then
             minetest.chat_send_player(sender:get_player_name(), "This elevator is inactive.")
         elseif boxes[meta:get_string("motor")] then
@@ -295,7 +303,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if formname ~= "elevator:elevator" then
         return
     end
-    local pos = formspecs[sender:get_player_name()]
+    local pos = formspecs[sender:get_player_name()] and formspecs[sender:get_player_name()][1] or nil
     if not pos then
         return
     end
@@ -303,7 +311,8 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if vector.distance(sender:get_pos(), pos) > 1 or boxes[meta:get_string("motor")] then
         return
     end
-    if fields.go then
+    if fields.target then
+        minetest.after(0.1, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", "")
         local motorhash = meta:get_string("motor")
         local motor = elevator.motors[motorhash]
         if not motor then
@@ -322,7 +331,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         end
         local target = nil
         for i,v in ipairs(motor.pnames) do
-            if v == fields.target then
+            if v == formspecs[sender:get_player_name()][2][minetest.explode_textlist_event(fields.target).index] then
                 target = minetest.string_to_pos(motor.elevators[i])
             end
         end
