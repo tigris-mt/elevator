@@ -1,6 +1,6 @@
 local SPEED = 10
 local ACCEL = 0.1
-local VERSION = 7
+local VERSION = 8
 
 local elevator = {
     motors = {},
@@ -108,6 +108,9 @@ local function build_motor(hash)
         end
         motor.labels[i] = meta:get_string("label")
         meta:set_string("motor", hash)
+        if motor.labels[i] ~= meta:get_string("infotext") then
+            meta:set_string("infotext", motor.labels[i])
+        end
     end
     if need_saving then
         save_elevator()
@@ -293,9 +296,17 @@ minetest.register_node(nodename, {
             end
             minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
         elseif not elevator.motors[meta:get_string("motor")] then
-            minetest.chat_send_player(sender:get_player_name(), "This elevator is inactive.")
+            formspec = "size[4,2]"
+                .."label[0,0;This elevator is inactive.]"
+                .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+            minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
         elseif boxes[meta:get_string("motor")] then
-            minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
+            formspec = "size[4,2]"
+                .."label[0,0;This elevator is in use.]"
+                .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+            minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
         end
     end,
 
@@ -320,6 +331,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             return true
         end
         meta:set_string("label", fields.label)
+        meta:set_string("infotext", fields.label)
         local motorhash = meta:get_string("motor")
         build_motor(elevator.motors[motorhash] and motorhash or locate_motor(pos))
         return true
@@ -399,6 +411,7 @@ local offabm = function(pos, node)
         minetest.after(0, function(pos) build_motor(locate_motor(pos)) end, pos)
         meta:set_int("version", VERSION)
         meta:set_string("formspec", "")
+        meta:set_string("infotext", meta:get_string("label"))
     end
     if not boxes[meta:get_string("motor")] and elevator.motors[meta:get_string("motor")] then
         node.name = "elevator:elevator_on"
@@ -423,7 +436,6 @@ minetest.register_abm({
             minetest.log("action", "[elevator] Updating elevator with old version at "..minetest.pos_to_string(pos))
             minetest.after(0, function(pos) build_motor(locate_motor(pos)) end, pos)
             meta:set_int("version", VERSION)
-            meta:set_string("formspec", "")
         end
         if boxes[meta:get_string("motor")] or not elevator.motors[meta:get_string("motor")] then
             node.name = "elevator:elevator_off"
