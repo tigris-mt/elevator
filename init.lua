@@ -21,6 +21,19 @@ minetest.register_globalstep(function(dtime)
             lastpp[p:get_player_name()] = pos
         end
     end
+    for motor,obj in pairs(boxes) do
+        local keep = false
+        local pos = obj:getpos()
+        for _,object in ipairs(minetest.get_objects_inside_radius(pos, 4)) do
+            if object.is_player and object:is_player() then
+                keep = true
+                break
+            end
+        end
+        if not keep then
+            boxes[motor] = false
+        end
+    end
 end)
 minetest.register_on_leaveplayer(function(player)
     if lastpp[player:get_player_name()] and vector.distance(lastpp[player:get_player_name()], player:getpos()) < 20 then
@@ -137,14 +150,17 @@ local function unbuild(pos, add)
             end
         end
     end
-    minetest.after(0.01, function(p2)
+    minetest.after(0.01, function(p2, add)
+        if not p2 or not add then
+            return
+        end
         p2.y = p2.y + add
         local motorhash = locate_motor(p2)
         build_motor(motorhash)
         if boxes[motorhash] and p2.y >= boxes[motorhash]:getpos().y then
             boxes[motorhash] = nil
         end
-    end, table.copy(pos))
+    end, table.copy(pos), add)
 end
 
 minetest.register_node("elevator:motor", {
@@ -552,6 +568,7 @@ local box_entity = {
         if not boxes[self.motor] then
             minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
             self.object:remove()
+            boxes[self.motor] = nil
             return
         end
         local pos = self.object:getpos()
