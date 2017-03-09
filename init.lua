@@ -8,6 +8,7 @@ local elevator = {
 local boxes = {}
 local formspecs = {}
 local lastpp = {}
+local lastboxes = {}
 local time = 0
 minetest.register_globalstep(function(dtime)
     time = time + dtime
@@ -22,15 +23,17 @@ minetest.register_globalstep(function(dtime)
         end
     end
     for motor,obj in pairs(boxes) do
-        local keep = false
+        lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], 20) or 5
+        lastboxes[motor] = math.max(lastboxes[motor] - 1, 0)
         local pos = obj:getpos()
-        for _,object in ipairs(minetest.get_objects_inside_radius(pos, 4)) do
+        for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
             if object.is_player and object:is_player() then
-                keep = true
+                lastboxes[motor] = lastboxes[motor] + 1
                 break
             end
         end
-        if not keep then
+        if lastboxes[motor] < 1 then
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of players.")
             boxes[motor] = false
         end
     end
@@ -560,18 +563,25 @@ local box_entity = {
     end,
 
     on_step = function(self, dtime)
+        local pos = self.object:getpos()
+        if boxes[self.motor] and boxes[self.motor] ~= self.object then
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to duplication.")
+            self.object:remove()
+            return
+        end
         if not minetest.get_player_by_name(self.attached) then
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
         if not boxes[self.motor] then
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil boxes.")
             minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
-        local pos = self.object:getpos()
         self.lastpos = self.lastpos or pos
         for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -1 or 1) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
@@ -582,6 +592,7 @@ local box_entity = {
                 -- Nothing
             elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 if vector.distance(p, self.target) < 1 then
+                    minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke due to arrival.")
                     self.object:remove()
                     minetest.get_player_by_name(self.attached):set_detach()
                     minetest.get_player_by_name(self.attached):set_pos(vector.add(self.target, {x=0, y=-0.4, z=0}))
@@ -594,6 +605,7 @@ local box_entity = {
                 --local abovenode = technic.get_or_load_node(above) or technic.get_or_load_node(above)
                 local belownode = technic.get_or_load_node(below) or technic.get_or_load_node(below)
                 if belownode.name ~= "elevator:elevator_on" and belownode.name ~= "elevator:elevator_off" then
+                    minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke on "..node.name)
                     boxes[self.motor] = nil
                     self.object:remove()
                     minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
