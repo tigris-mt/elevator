@@ -1,6 +1,7 @@
 local SPEED = 10
 local ACCEL = 0.1
 local VERSION = 8
+local PTIMEOUT = 120
 
 local elevator = {
     motors = {},
@@ -23,12 +24,12 @@ minetest.register_globalstep(function(dtime)
         end
     end
     for motor,obj in pairs(boxes) do
-        lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], 20) or 5
+        lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], PTIMEOUT) or PTIMEOUT
         lastboxes[motor] = math.max(lastboxes[motor] - 1, 0)
         local pos = obj:getpos()
         for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
             if object.is_player and object:is_player() then
-                lastboxes[motor] = lastboxes[motor] + 1
+                lastboxes[motor] = PTIMEOUT
                 break
             end
         end
@@ -393,6 +394,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
             sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
             obj:get_luaentity().motor = motorhash
+            obj:get_luaentity().uid = math.floor(math.random() * 1000000)
             obj:get_luaentity().attached = sender:get_player_name()
             obj:get_luaentity().start = pos
             obj:get_luaentity().target = target
@@ -541,6 +543,19 @@ minetest.register_node("elevator:elevator_box", {
     light_source = 4,
 })
 
+local function detach(self, pos)
+    local player = minetest.get_player_by_name(self.attached)
+    local attached = player:get_attach()
+    if not attached or attached:get_luaentity().uid ~= self.uid then
+        return
+    end
+    player:set_detach()
+    player:set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
+    if pos then
+        player:setpos(pos)
+    end
+end
+
 local box_entity = {
     physical = false,
     collisionbox = {0,0,0,0,0,0},
@@ -569,7 +584,7 @@ local box_entity = {
             self.object:remove()
             return
         end
-        if not minetest.get_player_by_name(self.attached) then
+        if not minetest.get_player_by_name(self.attached) or not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
             self.object:remove()
             boxes[self.motor] = nil
@@ -577,11 +592,12 @@ local box_entity = {
         end
         if not boxes[self.motor] then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil boxes.")
-            minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
+            detach(self)
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
+        minetest.get_player_by_name(self.attached):setpos(self.pos)
         self.lastpos = self.lastpos or pos
         for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -1 or 1) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
@@ -593,10 +609,8 @@ local box_entity = {
             elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 if vector.distance(p, self.target) < 1 then
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke due to arrival.")
+                    detach(self, vector.add(self.target, {x=0, y=-0.4, z=0}))
                     self.object:remove()
-                    minetest.get_player_by_name(self.attached):set_detach()
-                    minetest.get_player_by_name(self.attached):set_pos(vector.add(self.target, {x=0, y=-0.4, z=0}))
-                    minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
                     boxes[self.motor] = nil
                     offabm(self.target, node)
                     return
@@ -607,8 +621,8 @@ local box_entity = {
                 if belownode.name ~= "elevator:elevator_on" and belownode.name ~= "elevator:elevator_off" then
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke on "..node.name)
                     boxes[self.motor] = nil
+                    detach(self, p)
                     self.object:remove()
-                    minetest.get_player_by_name(self.attached):set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
                     return
                 end
             end
