@@ -27,14 +27,18 @@ minetest.register_globalstep(function(dtime)
         lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], PTIMEOUT) or PTIMEOUT
         lastboxes[motor] = math.max(lastboxes[motor] - 1, 0)
         local pos = obj:getpos()
-        for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
-            if object.is_player and object:is_player() then
-                lastboxes[motor] = PTIMEOUT
-                break
+        if pos then
+            for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
+                if object.is_player and object:is_player() then
+                    lastboxes[motor] = PTIMEOUT
+                    break
+                end
             end
-        end
-        if lastboxes[motor] < 1 then
-            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of players.")
+            if lastboxes[motor] < 1 then
+                minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of players.")
+                boxes[motor] = false
+            end
+        else
             boxes[motor] = false
         end
     end
@@ -161,7 +165,10 @@ local function unbuild(pos, add)
         p2.y = p2.y + add
         local motorhash = locate_motor(p2)
         build_motor(motorhash)
-        if boxes[motorhash] and p2.y >= boxes[motorhash]:getpos().y then
+        if boxes[motorhash] and boxes[motorhash]:getpos() and p2.y >= boxes[motorhash]:getpos().y then
+            boxes[motorhash] = nil
+        end
+        if boxes[motorhash] and not boxes[motorhash]:getpos() then
             boxes[motorhash] = nil
         end
     end, table.copy(pos), add)
@@ -337,6 +344,25 @@ minetest.register_node(nodename, {
 })
 end
 
+local function create_box(motorhash, pos, target, sender)
+    local obj = minetest.add_entity(pos, "elevator:box")
+    obj:set_pos(pos)
+    sender:set_pos(pos)
+    sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+    sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
+    obj:get_luaentity().motor = motorhash
+    obj:get_luaentity().uid = math.floor(math.random() * 1000000)
+    obj:get_luaentity().attached = sender:get_player_name()
+    obj:get_luaentity().start = pos
+    obj:get_luaentity().target = target
+    obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
+    obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
+    obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
+    obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
+    boxes[motorhash] = obj
+    return obj
+end
+
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if formname ~= "elevator:elevator" then
         return
@@ -360,7 +386,12 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         return true
     end
     if fields.target then
-        minetest.after(0.1, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", "")
+        local closeformspec = ""
+        local pi = minetest.get_player_information(sender:get_player_name())
+        if (not (pi.major == 0 and pi.minor == 4 and pi.patch == 15)) and (pi.protocol_version or 29) < 29 then
+            closeformspec = "size[4,2] label[0,0;You are now using the elevator.\nUpgrade Minetest to avoid this dialog.] button_exit[0,1;4,1;close;Close]"
+        end
+        minetest.after(0.2, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", closeformspec)
         local motorhash = meta:get_string("motor")
         local motor = elevator.motors[motorhash]
         if not motor then
@@ -388,22 +419,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
                 minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
                 return true
             end
-            local obj = minetest.add_entity(pos, "elevator:box")
-            obj:set_pos(pos)
-            sender:set_pos(pos)
-            sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
-            sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
-            obj:get_luaentity().motor = motorhash
-            obj:get_luaentity().uid = math.floor(math.random() * 1000000)
-            obj:get_luaentity().attached = sender:get_player_name()
-            obj:get_luaentity().start = pos
-            obj:get_luaentity().target = target
-            obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
-            obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
-            obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
-            obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
-            boxes[motorhash] = obj
-
+            local obj = create_box(motorhash, pos, target, sender)
             for _,p in ipairs(motor.elevators) do
                 local p = minetest.string_to_pos(p)
                 for _,object in ipairs(minetest.get_objects_inside_radius(p, 2)) do
@@ -553,6 +569,9 @@ local function detach(self, pos)
     player:set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
     if pos then
         player:setpos(pos)
+	minetest.after(0.1, function(pl, p)
+		pl:setpos(p)
+	end, player, pos)
     end
 end
 
@@ -579,15 +598,28 @@ local box_entity = {
 
     on_step = function(self, dtime)
         local pos = self.object:getpos()
+        self.timer = (self.timer or 0) + dtime
+        if self.timer > 5 and self.motor and self.target and self.attached and pos then
+            self.object:remove()
+            create_box(self.motor, pos, self.target, minetest.get_player_by_name(self.attached))
+            return
+        end
         if boxes[self.motor] and boxes[self.motor] ~= self.object then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to duplication.")
             self.object:remove()
             return
         end
-        if not minetest.get_player_by_name(self.attached) or not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
+        if not minetest.get_player_by_name(self.attached) then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
             self.object:remove()
             boxes[self.motor] = nil
+            return
+        end
+        if not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
+            local player = minetest.get_player_by_name(self.attached)
+            player:set_pos(pos)
+            player:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+            player:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
             return
         end
         if not boxes[self.motor] then
@@ -597,7 +629,7 @@ local box_entity = {
             boxes[self.motor] = nil
             return
         end
-        minetest.get_player_by_name(self.attached):setpos(self.pos)
+        minetest.get_player_by_name(self.attached):setpos(pos)
         self.lastpos = self.lastpos or pos
         for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -1 or 1) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
