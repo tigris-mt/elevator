@@ -17,9 +17,15 @@ minetest.register_globalstep(function(dtime)
         return
     end
     time = 0
+    local aplayers = {}
+    for motor,box in pairs(boxes) do
+        if box and box.get_luaentity and box:get_luaentity() and box:get_luaentity().attached then
+            aplayers[box:get_luaentity().attached] = true
+        end
+    end
     for _,p in ipairs(minetest.get_connected_players()) do
         local pos = p:getpos()
-        if minetest.get_node(pos).name ~= "elevator:elevator_on" then
+        if not aplayers[p:get_player_name()] and minetest.get_node(pos).name ~= "elevator:elevator_on" then
             lastpp[p:get_player_name()] = pos
         end
     end
@@ -229,10 +235,11 @@ minetest.register_node(nodename, {
     sunlight_propagates = false,
     paramtype = 'light',
     paramtype2 = "facedir",
+    on_rotate = screwdriver.disallow,
 
     selection_box = {
             type = "fixed",
-            fixed = { -0.5, -0.5, -0.5, 0.5, 1.5, 0.5 }
+            fixed = box,
     },
 
     collision_box = {
@@ -486,6 +493,7 @@ minetest.register_node("elevator:shaft", {
     tiles = { "elevator_shaft.png" },
     drawtype = "nodebox",
     paramtype = "light",
+    on_rotate = screwdriver.disallow,
     sunlight_propagates = true,
     groups = {cracky=2, oddly_breakable_by_hand=1},
     sounds = default.node_sound_stone_defaults(),
@@ -610,16 +618,15 @@ local box_entity = {
             return
         end
         if not minetest.get_player_by_name(self.attached) then
-            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee logged in.")
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
         if not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
-            local player = minetest.get_player_by_name(self.attached)
-            player:set_pos(pos)
-            player:set_attach(self.object, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
-            player:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
+            self.object:remove()
+            boxes[self.motor] = nil
             return
         end
         if not boxes[self.motor] then
