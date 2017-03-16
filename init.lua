@@ -216,7 +216,7 @@ if on then
         { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
         { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
     }
-    cbox = box
+    cbox = table.copy(box)
     cbox[5] = nil
 else
     box = {
@@ -299,6 +299,7 @@ minetest.register_node(nodename, {
 
     on_rightclick = function(pos, node, sender)
         local meta = minetest.get_meta(pos)
+        formspecs[sender:get_player_name()] = {pos}
         if on then
             if vector.distance(sender:get_pos(), pos) > 1 or minetest.get_node(sender:get_pos()).name ~= nodename then
                 minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
