@@ -3,33 +3,97 @@ local ACCEL = 0.1
 local VERSION = 8
 local PTIMEOUT = 120
 
+-- Central "network" table.
 local elevator = {
     motors = {},
 }
+-- Elevator boxes in action.
 local boxes = {}
+-- Player formspecs.
 local formspecs = {}
-local lastpp = {}
+-- Player near box timeout.
 local lastboxes = {}
+-- Players riding boxes.
+local riding = {}
+-- Globalstep timer.
 local time = 0
+
+-- Cause <sender> to ride <motorhash> beginning at <pos> and targetting <target>.
+local function create_box(motorhash, pos, target, sender)
+    -- First create the box.
+    local obj = minetest.add_entity(pos, "elevator:box")
+    obj:set_pos(pos)
+    -- Attach the player.
+    sender:set_pos(pos)
+    sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+    sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
+    -- Set the box properties.
+    obj:get_luaentity().motor = motorhash
+    obj:get_luaentity().uid = math.floor(math.random() * 1000000)
+    obj:get_luaentity().attached = sender:get_player_name()
+    obj:get_luaentity().start = pos
+    obj:get_luaentity().target = target
+    obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
+    obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
+    -- Set the speed.
+    obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
+    obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
+    -- Set the tables.
+    boxes[motorhash] = obj
+    riding[sender:get_player_name()] = {
+        motor = motorhash,
+        pos = pos,
+        target = target,
+        box = obj,
+    }
+    return obj
+end
+
+local function teleport_player_from_elevator(player)
+    local function solid(pos)
+        if not minetest.registered_nodes[minetest.get_node(pos).name] then
+            return true
+        end
+        return minetest.registered_nodes[minetest.get_node(pos).name].walkable
+    end
+    local pos = vector.round(player:getpos())
+    local node = minetest.get_node(pos)
+    if node.name == "elevator:elevator_on" then
+        local front = vector.subtract(pos, minetest.facedir_to_dir(node.param2))
+        local front_above = vector.add(front, {x=0, y=1, z=0})
+        local front_below = vector.subtract(front, {x=0, y=1, z=0})
+        if not solid(front) and not solid(front_above) then
+            player:setpos(front)
+        end
+    end
+end
+
 minetest.register_globalstep(function(dtime)
     time = time + dtime
     if time < 0.5 then
         return
     end
     time = 0
-    local aplayers = {}
-    for motor,box in pairs(boxes) do
-        if box and box.get_luaentity and box:get_luaentity() and box:get_luaentity().attached then
-            aplayers[box:get_luaentity().attached] = true
-        end
-    end
+    local newriding = {}
     for _,p in ipairs(minetest.get_connected_players()) do
         local pos = p:getpos()
-        if not aplayers[p:get_player_name()] and minetest.get_node(pos).name ~= "elevator:elevator_on" then
-            lastpp[p:get_player_name()] = pos
+        newriding[p:get_player_name()] = riding[p:get_player_name()]
+        if newriding[p:get_player_name()] then
+            newriding[p:get_player_name()].pos = pos
+        end
+    end
+    riding = newriding
+    for name,r in pairs(riding) do
+        local ok = r.box and r.box.getpos and r.box:getpos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
+        if not ok then
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(r.pos).." created due to lost rider.")
+            minetest.after(0, create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
         end
     end
     for motor,obj in pairs(boxes) do
+        if type(obj) ~= "table" then
+            return
+        end
         lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], PTIMEOUT) or PTIMEOUT
         lastboxes[motor] = math.max(lastboxes[motor] - 1, 0)
         local pos = obj:getpos()
@@ -45,14 +109,13 @@ minetest.register_globalstep(function(dtime)
                 boxes[motor] = false
             end
         else
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of position during player check.")
             boxes[motor] = false
         end
     end
 end)
 minetest.register_on_leaveplayer(function(player)
-    if lastpp[player:get_player_name()] and vector.distance(lastpp[player:get_player_name()], player:getpos()) < 20 then
-        player:setpos(lastpp[player:get_player_name()])
-    end
+    teleport_player_from_elevator(player)
 end)
 local elevator_file = minetest.get_worldpath() .. "/elevator"
 
@@ -352,25 +415,6 @@ minetest.register_node(nodename, {
 })
 end
 
-local function create_box(motorhash, pos, target, sender)
-    local obj = minetest.add_entity(pos, "elevator:box")
-    obj:set_pos(pos)
-    sender:set_pos(pos)
-    sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
-    sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
-    obj:get_luaentity().motor = motorhash
-    obj:get_luaentity().uid = math.floor(math.random() * 1000000)
-    obj:get_luaentity().attached = sender:get_player_name()
-    obj:get_luaentity().start = pos
-    obj:get_luaentity().target = target
-    obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
-    obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
-    obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
-    obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
-    boxes[motorhash] = obj
-    return obj
-end
-
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if formname ~= "elevator:elevator" then
         return
@@ -396,6 +440,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     if fields.target then
         local closeformspec = ""
         local pi = minetest.get_player_information(sender:get_player_name())
+        -- HACK: With player information enabled, we can check if closing formspecs are now allowed. This is specifically used on Survival in Ethereal.
         if (not (pi.major == 0 and pi.minor == 4 and pi.patch == 15)) and (pi.protocol_version or 29) < 29 then
             closeformspec = "size[4,2] label[0,0;You are now using the elevator.\nUpgrade Minetest to avoid this dialog.] button_exit[0,1;4,1;close;Close]"
         end
@@ -431,9 +476,9 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             for _,p in ipairs(motor.elevators) do
                 local p = minetest.string_to_pos(p)
                 for _,object in ipairs(minetest.get_objects_inside_radius(p, 2)) do
-                    if object.is_player and object:is_player() and minetest.get_node(object:getpos()).name == "elevator:elevator_on" then
+                    if object.is_player and object:is_player() then
                         if object:get_player_name() ~= obj:get_luaentity().attached then
-                            object:setpos(lastpp[sender:get_player_name()])
+                            teleport_player_from_elevator(object)
                         end
                     end
                 end
@@ -582,6 +627,7 @@ local function detach(self, pos)
 		pl:setpos(p)
 	end, player, pos)
     end
+    riding[self.attached] = nil
 end
 
 local box_entity = {
@@ -601,18 +647,12 @@ local box_entity = {
     halfway = false,
     vmult = 0,
 
-    on_activate = function(self)
+    on_activate = function(self, staticdata)
         self.object:set_armor_groups({immortal=1})
     end,
 
     on_step = function(self, dtime)
         local pos = self.object:getpos()
-        self.timer = (self.timer or 0) + dtime
-        if self.timer > 5 and self.motor and self.target and self.attached and pos then
-            self.object:remove()
-            create_box(self.motor, pos, self.target, minetest.get_player_by_name(self.attached))
-            return
-        end
         if boxes[self.motor] and boxes[self.motor] ~= self.object then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to duplication.")
             self.object:remove()
@@ -666,6 +706,12 @@ local box_entity = {
                     return
                 end
             end
+        end
+        self.timer = (self.timer or 0) + dtime
+        if self.timer > 5 and self.motor and self.target and self.attached and pos then
+            self.object:remove()
+            create_box(self.motor, pos, self.target, minetest.get_player_by_name(self.attached))
+            return
         end
         self.lastpos = pos
     end,
