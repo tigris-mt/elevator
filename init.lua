@@ -49,6 +49,7 @@ local function create_box(motorhash, pos, target, sender)
     return obj
 end
 
+-- Try to teleport player away from any elevator node.
 local function teleport_player_from_elevator(player)
     local function solid(pos)
         if not minetest.registered_nodes[minetest.get_node(pos).name] then
@@ -74,6 +75,7 @@ minetest.register_globalstep(function(dtime)
         return
     end
     time = 0
+    -- Only count riders who are still logged in.
     local newriding = {}
     for _,p in ipairs(minetest.get_connected_players()) do
         local pos = p:getpos()
@@ -84,12 +86,14 @@ minetest.register_globalstep(function(dtime)
     end
     riding = newriding
     for name,r in pairs(riding) do
+        -- If the box is no longer loaded or existent, create another.
         local ok = r.box and r.box.getpos and r.box:getpos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
         if not ok then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(r.pos).." created due to lost rider.")
             minetest.after(0, create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
         end
     end
+    -- Ensure boxes are deleted after <PTIMEOUT> seconds if there are no players nearby.
     for motor,obj in pairs(boxes) do
         if type(obj) ~= "table" then
             return
@@ -114,9 +118,13 @@ minetest.register_globalstep(function(dtime)
         end
     end
 end)
+
 minetest.register_on_leaveplayer(function(player)
+    -- We don't want players logging into open elevators.
     teleport_player_from_elevator(player)
 end)
+
+
 local elevator_file = minetest.get_worldpath() .. "/elevator"
 
 local function load_elevator()
@@ -140,6 +148,7 @@ local function phash(pos)
     return minetest.pos_to_string(pos)
 end
 
+-- Starting from <pos>, locate a motor hash.
 local function locate_motor(pos)
     local p = vector.new(pos)
     while true do
@@ -171,6 +180,7 @@ local function build_motor(hash)
     motor.elevators = {}
     motor.pnames = {}
     motor.labels = {}
+    -- Run down through the shaft, storing information about elevators.
     while true do
         local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
         if node.name == "elevator:shaft" then
@@ -189,6 +199,7 @@ local function build_motor(hash)
             end
         end
     end
+    -- Set the elevators fully.
     for i,m in ipairs(motor.elevators) do
         local pos = minetest.string_to_pos(m)
         local meta = minetest.get_meta(pos)
@@ -227,6 +238,7 @@ local function unbuild(pos, add)
             end
         end
     end
+    -- After a short delay, build the motor and handle box removal.
     minetest.after(0.01, function(p2, add)
         if not p2 or not add then
             return
@@ -234,9 +246,11 @@ local function unbuild(pos, add)
         p2.y = p2.y + add
         local motorhash = locate_motor(p2)
         build_motor(motorhash)
+        -- If there's a box below this point, break it.
         if boxes[motorhash] and boxes[motorhash]:getpos() and p2.y >= boxes[motorhash]:getpos().y then
             boxes[motorhash] = nil
         end
+        -- If the box does not exist, just clear it.
         if boxes[motorhash] and not boxes[motorhash]:getpos() then
             boxes[motorhash] = nil
         end
@@ -368,6 +382,7 @@ minetest.register_node(nodename, {
                 minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
                 return
             end
+            -- Build the formspec from the motor table.
             local formspec
             local tpnames = {}
             local tpnames_l = {}
@@ -472,10 +487,11 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
                 minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
                 return true
             end
+            -- Teleport anyone standing within the elevator out.
             local obj = create_box(motorhash, pos, target, sender)
             for _,p in ipairs(motor.elevators) do
                 local p = minetest.string_to_pos(p)
-                for _,object in ipairs(minetest.get_objects_inside_radius(p, 2)) do
+                for _,object in ipairs(minetest.get_objects_inside_radius(p, 0.6)) do
                     if object.is_player and object:is_player() then
                         if object:get_player_name() ~= obj:get_luaentity().attached then
                             teleport_player_from_elevator(object)
@@ -494,6 +510,7 @@ end)
 
 minetest.register_alias("elevator:elevator", "elevator:elevator_off")
 
+-- Convert off to on when applicable.
 local offabm = function(pos, node)
     local meta = minetest.get_meta(pos)
     if meta:get_int("version") ~= VERSION then
@@ -516,6 +533,7 @@ minetest.register_abm({
     action = offabm,
 })
 
+-- Convert on to off when applicable.
 minetest.register_abm({
     nodenames = {"elevator:elevator_on"},
     interval = 1,
@@ -653,23 +671,27 @@ local box_entity = {
 
     on_step = function(self, dtime)
         local pos = self.object:getpos()
+        -- If the motor has a box and it isn't this box.
         if boxes[self.motor] and boxes[self.motor] ~= self.object then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to duplication.")
             self.object:remove()
             return
         end
+        -- If our attached player can't be found.
         if not minetest.get_player_by_name(self.attached) then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee logged in.")
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
+        -- If our attached player is no longer with us.
         if not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
             self.object:remove()
             boxes[self.motor] = nil
             return
         end
+        -- If our motor's box is nil, we should self-destruct.
         if not boxes[self.motor] then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil boxes.")
             detach(self)
