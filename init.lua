@@ -307,8 +307,7 @@ else
 end
 minetest.register_node(nodename, {
     description = "Elevator",
-    drawtype = (on and "mesh" or "nodebox"),
-    mesh = "travelnet_elevator.obj",
+    drawtype = "nodebox",
     sunlight_propagates = false,
     paramtype = 'light',
     paramtype2 = "facedir",
@@ -330,12 +329,12 @@ minetest.register_node(nodename, {
     },
 
     tiles = on and {
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
             "default_steel_block.png",
             "default_steel_block.png",
+            "elevator_box.png",
+            "elevator_box.png",
+            "elevator_box.png",
+            "elevator_box.png",
     } or {
             "elevator_box.png",
             "elevator_box.png",
@@ -598,7 +597,7 @@ local box = {
 
 minetest.register_node("elevator:elevator_box", {
     description = "Elevator",
-    drawtype = ("nodebox"),
+    drawtype = "nodebox",
     paramtype = 'light',
     paramtype2 = "facedir",
     wield_scale = {x=0.6, y=0.6, z=0.6},
@@ -652,7 +651,6 @@ local box_entity = {
     physical = false,
     collisionbox = {0,0,0,0,0,0},
     visual = "wielditem",
-    mesh = "carts_cart.b3d",
     visual_size = {x=1, y=1},
     textures = {"elevator:elevator_box"},
 
