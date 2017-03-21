@@ -3,10 +3,33 @@ local ACCEL = 0.1
 local VERSION = 8
 local PTIMEOUT = 120
 
+local technic_path = minetest.get_modpath("technic")
+local chains_path = minetest.get_modpath("chains")
+
 -- Central "network" table.
 local elevator = {
     motors = {},
 }
+
+local elevator_file = minetest.get_worldpath() .. "/elevator"
+
+local function load_elevator()
+    local file = io.open(elevator_file)
+    if file then
+        elevator = minetest.deserialize(file:read("*all")) or {}
+        file:close()
+    end
+end
+
+local function save_elevator()
+    local f = io.open(elevator_file .. ".tmp", "w")
+    f:write(minetest.serialize(elevator))
+    f:close()
+    os.rename(elevator_file .. ".tmp", elevator_file)
+end
+
+load_elevator()
+
 -- Elevator boxes in action.
 local boxes = {}
 -- Player formspecs.
@@ -17,6 +40,36 @@ local lastboxes = {}
 local riding = {}
 -- Globalstep timer.
 local time = 0
+
+-- Helper function to read unloaded nodes.
+local function get_node(pos)
+    local node = minetest.get_node_or_nil(pos)
+    if node then return node end
+    local _,_ = VoxelManip():read_from_map(pos, pos)
+    return minetest.get_node_or_nil(pos)
+end
+
+-- Placeholder node, in the style of homedecor.
+local placeholder = "elevator:placeholder"
+minetest.register_node(placeholder, {
+    description = "Expansion placeholder (you hacker you!)",
+    selection_box = { type = "fixed", fixed = { 0, 0, 0, 0, 0, 0 } },
+    groups = {
+        not_in_creative_inventory=1
+    },
+    drawtype = "airlike",
+    paramtype = "light",
+    sunlight_propagates = true,
+
+    walkable = false,
+    buildable_to = false,
+    is_ground_content = false,
+
+    on_dig = function(pos, node, player)
+        minetest.remove_node(pos)
+        minetest.set_node(pos, {name=placeholder})
+    end
+})
 
 -- Cause <sender> to ride <motorhash> beginning at <pos> and targetting <target>.
 local function create_box(motorhash, pos, target, sender)
@@ -49,7 +102,7 @@ local function create_box(motorhash, pos, target, sender)
     return obj
 end
 
--- Try to teleport player away from any elevator node.
+-- Try to teleport player away from any closed (on) elevator node.
 local function teleport_player_from_elevator(player)
     local function solid(pos)
         if not minetest.registered_nodes[minetest.get_node(pos).name] then
@@ -120,29 +173,9 @@ minetest.register_globalstep(function(dtime)
 end)
 
 minetest.register_on_leaveplayer(function(player)
-    -- We don't want players logging into open elevators.
+    -- We don't want players potentially logging into open elevators.
     teleport_player_from_elevator(player)
 end)
-
-
-local elevator_file = minetest.get_worldpath() .. "/elevator"
-
-local function load_elevator()
-    local file = io.open(elevator_file)
-    if file then
-        elevator = minetest.deserialize(file:read("*all")) or {}
-        file:close()
-    end
-end
-
-local function save_elevator()
-    local f = io.open(elevator_file .. ".tmp", "w")
-    f:write(minetest.serialize(elevator))
-    f:close()
-    os.rename(elevator_file .. ".tmp", elevator_file)
-end
-
-load_elevator()
 
 local function phash(pos)
     return minetest.pos_to_string(pos)
@@ -152,7 +185,7 @@ end
 local function locate_motor(pos)
     local p = vector.new(pos)
     while true do
-        local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+        local node = get_node(p)
         if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
             p.y = p.y + 2
         elseif node.name == "elevator:shaft" then
@@ -172,7 +205,7 @@ local function build_motor(hash)
         return
     end
     local p = minetest.string_to_pos(hash)
-    local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+    local node = get_node(p)
     if node.name ~= "elevator:motor" then
         return
     end
@@ -182,12 +215,12 @@ local function build_motor(hash)
     motor.labels = {}
     -- Run down through the shaft, storing information about elevators.
     while true do
-        local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+        local node = get_node(p)
         if node.name == "elevator:shaft" then
             p.y = p.y - 1
         else
             p.y = p.y - 1
-            local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+            local node = get_node(p)
             if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 table.insert(motor.elevators, phash(p))
                 table.insert(motor.pnames, tostring(p.y))
@@ -223,12 +256,12 @@ local function unbuild(pos, add)
     local p = table.copy(pos)
     p.y = p.y - 1
     while true do
-        local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+        local node = get_node(p)
         if node.name == "elevator:shaft" then
             p.y = p.y - 1
         else
             p.y = p.y - 1
-            local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+            local node = get_node(p)
             if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 local meta = minetest.get_meta(p)
                 meta:set_string("motor", "")
@@ -259,7 +292,14 @@ end
 
 minetest.register_node("elevator:motor", {
     description = "Elevator Motor",
-    tiles = { "technic_wrought_iron_block.png^homedecor_motor.png" },
+    tiles = {
+        "default_steel_block.png",
+        "default_steel_block.png",
+        "elevator_motor.png",
+        "elevator_motor.png",
+        "elevator_motor.png",
+        "elevator_motor.png",
+    },
     groups = {cracky=1},
     sounds = default.node_sound_stone_defaults(),
     after_place_node = function(pos, placer, itemstack)
@@ -353,7 +393,7 @@ minetest.register_node(nodename, {
         meta:set_int("version", VERSION)
         local p = {x=pos.x, y=pos.y+1, z=pos.z}
         local p2 = minetest.dir_to_facedir(placer:get_look_dir())
-        minetest.set_node(p, {name="homedecor:expansion_placeholder", paramtype2="facedir", param2=p2})
+        minetest.set_node(p, {name=placeholder, paramtype2="facedir", param2=p2})
         local motor = locate_motor(pos)
         if motor then
             build_motor(motor)
@@ -367,7 +407,7 @@ minetest.register_node(nodename, {
     on_place = function(itemstack, placer, pointed_thing)
        local pos  = pointed_thing.above
        local node = minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z})
-       if( node ~= nil and node.name ~= "air" and node.name ~= 'homedecor:expansion_placeholder') then
+       if( node ~= nil and node.name ~= "air" and node.name ~= placeholder) then
           return
        end
        return minetest.item_place(itemstack, placer, pointed_thing);
@@ -453,11 +493,12 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
     end
     if fields.target then
         local closeformspec = ""
+        -- HACK: With player information extensions enabled, we can check if closing formspecs are now allowed. This is specifically used on Survival in Ethereal.
         local pi = minetest.get_player_information(sender:get_player_name())
-        -- HACK: With player information enabled, we can check if closing formspecs are now allowed. This is specifically used on Survival in Ethereal.
         if (not (pi.major == 0 and pi.minor == 4 and pi.patch == 15)) and (pi.protocol_version or 29) < 29 then
             closeformspec = "size[4,2] label[0,0;You are now using the elevator.\nUpgrade Minetest to avoid this dialog.] button_exit[0,1;4,1;close;Close]"
         end
+        -- End hacky HACK.
         minetest.after(0.2, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", closeformspec)
         local motorhash = meta:get_string("motor")
         local motor = elevator.motors[motorhash]
@@ -486,8 +527,8 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
                 minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
                 return true
             end
-            -- Teleport anyone standing within the elevator out.
             local obj = create_box(motorhash, pos, target, sender)
+            -- Teleport anyone standing within an on elevator out, or they'd fall through the off elevators.
             for _,p in ipairs(motor.elevators) do
                 local p = minetest.string_to_pos(p)
                 for _,object in ipairs(minetest.get_objects_inside_radius(p, 0.6)) do
@@ -595,6 +636,7 @@ local box = {
     { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
 }
 
+-- Elevator box node. Not intended to be placeable.
 minetest.register_node("elevator:elevator_box", {
     description = "Elevator",
     drawtype = "nodebox",
@@ -691,7 +733,7 @@ local box_entity = {
         end
         -- If our motor's box is nil, we should self-destruct.
         if not boxes[self.motor] then
-            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil boxes.")
+            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil entry in boxes.")
             detach(self)
             self.object:remove()
             boxes[self.motor] = nil
@@ -703,7 +745,7 @@ local box_entity = {
             local p = vector.round({x=pos.x, y=y, z=pos.z})
             --local above = vector.add(p, {x=0,y=1,z=0})
             local below = vector.add(p, {x=0,y=-1,z=0})
-            local node = technic.get_or_load_node(p) or technic.get_or_load_node(p)
+            local node = get_node(p)
             if node.name == "elevator:shaft" then
                 -- Nothing
             elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
@@ -716,8 +758,7 @@ local box_entity = {
                     return
                 end
             else
-                --local abovenode = technic.get_or_load_node(above) or technic.get_or_load_node(above)
-                local belownode = technic.get_or_load_node(below) or technic.get_or_load_node(below)
+                local belownode = get_node(below)
                 if belownode.name ~= "elevator:elevator_on" and belownode.name ~= "elevator:elevator_off" then
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke on "..node.name)
                     boxes[self.motor] = nil
@@ -739,28 +780,32 @@ local box_entity = {
 
 minetest.register_entity("elevator:box", box_entity)
 
-minetest.register_craft({
-    output = "elevator:elevator",
-    recipe = {
-        {"technic:cast_iron_ingot", "chains:chain", "technic:cast_iron_ingot"},
-        {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
-        {"technic:stainless_steel_ingot", "default:glass", "technic:stainless_steel_ingot"},
-    },
-})
+if technic_path and chains_path then
+    minetest.register_craft({
+        output = "elevator:elevator",
+        recipe = {
+            {"technic:cast_iron_ingot", "chains:chain", "technic:cast_iron_ingot"},
+            {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
+            {"technic:stainless_steel_ingot", "default:glass", "technic:stainless_steel_ingot"},
+        },
+    })
 
-minetest.register_craft({
-    output = "elevator:shaft",
-    recipe = {
-        {"technic:cast_iron_ingot", "default:glass"},
-        {"default:glass", "homedecor:chainlink_steel"},
-    },
-})
+    minetest.register_craft({
+        output = "elevator:shaft",
+        recipe = {
+            {"technic:cast_iron_ingot", "default:glass"},
+            {"default:glass", "glooptest:chainlink"},
+        },
+    })
 
-minetest.register_craft({
-    output = "elevator:motor",
-    recipe = {
-        {"default:diamond", "technic:control_logic_unit", "default:diamond"},
-        {"default:steelblock", "technic:motor", "default:steelblock"},
-        {"chains:chain", "default:diamond", "chains:chain"}
-    },
-})
+    minetest.register_craft({
+        output = "elevator:motor",
+        recipe = {
+            {"default:diamond", "technic:control_logic_unit", "default:diamond"},
+            {"default:steelblock", "technic:motor", "default:steelblock"},
+            {"chains:chain", "default:diamond", "chains:chain"}
+        },
+    })
+else
+    -- Recipes without technic & chains required.
+end
