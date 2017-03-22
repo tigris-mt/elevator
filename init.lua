@@ -10,7 +10,7 @@ local PTIMEOUT = 120
 -- Detect optional mods.
 local technic_path = minetest.get_modpath("technic")
 local chains_path = minetest.get_modpath("chains")
-local homedecor = minetest.get_modpath("homedecor")
+local homedecor_path = minetest.get_modpath("homedecor")
 
 -- Central "network" table.
 local elevator = {
@@ -56,7 +56,7 @@ local function get_node(pos)
 end
 
 -- Use homedecor's placeholder if possible.
-local placeholder = homedecor and "homedecor:expansion_placeholder" or "elevator:placeholder"
+local placeholder = homedecor_path and "homedecor:expansion_placeholder" or "elevator:placeholder"
 if homedecor then
     minetest.register_alias("elevator:placeholder", "homedecor:expansion_placeholder")
 else
