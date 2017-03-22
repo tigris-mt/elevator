@@ -797,9 +797,8 @@ local box_entity = {
         self.lastpos = self.lastpos or pos
 
         -- Loop through all travelled nodes.
-        for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -1 or 1) do
+        for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -0.5 or 0.5) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
-            local below = vector.add(p, {x=0,y=-1,z=0})
             local node = get_node(p)
             if node.name == "elevator:shaft" then
                 -- Nothing, just continue on our way.
@@ -815,6 +814,7 @@ local box_entity = {
                 end
             else
                 -- Check if we're in the top part of an elevator, if so it's fine.
+                local below = vector.add(p, {x=0,y=-1,z=0})
                 local belownode = get_node(below)
                 if belownode.name ~= "elevator:elevator_on" and belownode.name ~= "elevator:elevator_off" then
                     -- If we aren't, then break the box.
@@ -825,13 +825,6 @@ local box_entity = {
                     return
                 end
             end
-        end
-        -- Recreate the box every few seconds. This may not be necessary anymore, but does not seem to harm anything.
-        self.timer = (self.timer or 0) + dtime
-        if self.timer > 5 and self.motor and self.target and self.attached and pos then
-            self.object:remove()
-            create_box(self.motor, pos, self.target, minetest.get_player_by_name(self.attached))
-            return
         end
         self.lastpos = pos
     end,
