@@ -466,7 +466,7 @@ for _,mode in ipairs({"on", "off"}) do
                 for ji,jv in ipairs(motor.pnames) do
                     if tonumber(jv) ~= pos.y then
                         table.insert(tpnames, jv)
-                        table.insert(tpnames_l, (motor.labels[ji] and motor.labels[ji] ~= "") and (jv.." - "..motor.labels[ji]) or jv)
+                        table.insert(tpnames_l, (motor.labels[ji] and motor.labels[ji] ~= "") and (jv.." - "..minetest.formspec_escape(motor.labels[ji])) or jv)
                     end
                 end
                 formspecs[sender:get_player_name()] = {pos, tpnames}
