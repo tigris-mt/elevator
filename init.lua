@@ -11,6 +11,7 @@ local PTIMEOUT = 120
 local technic_path = minetest.get_modpath("technic")
 local chains_path = minetest.get_modpath("chains")
 local homedecor_path = minetest.get_modpath("homedecor")
+local armor_path = minetest.get_modpath("3d_armor")
 
 -- Central "network" table.
 local elevator = {
@@ -85,6 +86,8 @@ else
     })
 end
 
+local VISUAL_INCREASE = 1.75
+
 -- Cause <sender> to ride <motorhash> beginning at <pos> and targetting <target>.
 local function create_box(motorhash, pos, target, sender)
     -- First create the box.
@@ -92,8 +95,14 @@ local function create_box(motorhash, pos, target, sender)
     obj:set_pos(pos)
     -- Attach the player.
     sender:set_pos(pos)
-    sender:set_attach(obj, "", {x=0, y=0, z=0}, {x=0, y=0, z=0})
+    sender:set_attach(obj, "", {x=0, y=9, z=0}, {x=0, y=0, z=0})
     sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
+    local p = sender:get_properties()
+    p.visual_size = {x=VISUAL_INCREASE, y=VISUAL_INCREASE}
+    sender:set_properties(p)
+    if armor_path then
+        armor:update_player_visuals(sender)
+    end
     -- Set the box properties.
     obj:get_luaentity().motor = motorhash
     obj:get_luaentity().uid = math.floor(math.random() * 1000000)
@@ -730,6 +739,12 @@ local function detach(self, pos)
     end
     player:set_detach()
     player:set_eye_offset({x=0, y=0, z=0},{x=0, y=0, z=0})
+    local p = player:get_properties()
+    p.visual_size = {x=1, y=1}
+    player:set_properties(p)
+    if armor_path then
+        armor:update_player_visuals(player)
+    end
     if pos then
         player:setpos(pos)
 	minetest.after(0.1, function(pl, p)
