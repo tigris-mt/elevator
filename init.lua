@@ -58,7 +58,7 @@ end
 
 -- Use homedecor's placeholder if possible.
 local placeholder = homedecor_path and "homedecor:expansion_placeholder" or "elevator:placeholder"
-if homedecor then
+if homedecor_path then
     minetest.register_alias("elevator:placeholder", "homedecor:expansion_placeholder")
 else
     -- Placeholder node, in the style of homedecor.
@@ -92,9 +92,9 @@ local VISUAL_INCREASE = 1.75
 local function create_box(motorhash, pos, target, sender)
     -- First create the box.
     local obj = minetest.add_entity(pos, "elevator:box")
-    obj:set_pos(pos)
+    obj:setpos(pos)
     -- Attach the player.
-    sender:set_pos(pos)
+    sender:setpos(pos)
     sender:set_attach(obj, "", {x=0, y=9, z=0}, {x=0, y=0, z=0})
     sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
     sender:set_properties({visual_size = {x=VISUAL_INCREASE, y=VISUAL_INCREASE}})
@@ -460,15 +460,15 @@ for _,mode in ipairs({"on", "off"}) do
             if not sender or not sender:is_player() then
                 return
             end
+            local formspec
             local meta = minetest.get_meta(pos)
             formspecs[sender:get_player_name()] = {pos}
             if on then
-                if vector.distance(sender:get_pos(), pos) > 1 or minetest.get_node(sender:get_pos()).name ~= nodename then
+                if vector.distance(sender:getpos(), pos) > 1 or minetest.get_node(sender:getpos()).name ~= nodename then
                     minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
                     return
                 end
                 -- Build the formspec from the motor table.
-                local formspec
                 local tpnames = {}
                 local tpnames_l = {}
                 local motorhash = meta:get_string("motor")
@@ -538,7 +538,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         return true
     end
     -- Double check if it's ok to go.
-    if vector.distance(sender:get_pos(), pos) > 1 then
+    if vector.distance(sender:getpos(), pos) > 1 then
         return true
     end
     if fields.target then
