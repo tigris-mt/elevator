@@ -632,6 +632,7 @@ minetest.register_abm({
     interval = 1,
     chance = 1,
     action = offabm,
+    label = "Elevator (Off)",
 })
 
 -- Convert on to off when applicable.
@@ -647,6 +648,7 @@ minetest.register_abm({
             minetest.swap_node(pos, node)
         end
     end,
+    label = "Elevator (On)",
 })
 
 minetest.register_node("elevator:shaft", {
