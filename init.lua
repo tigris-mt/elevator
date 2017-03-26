@@ -453,10 +453,13 @@ for _,mode in ipairs({"on", "off"}) do
             if (node ~= nil and node.name ~= "air" and node.name ~= placeholder) then
                 return
             end
-            return minetest.item_place(itemstack, placer, pointed_thing);
+            return minetest.item_place(itemstack, placer, pointed_thing)
         end,
 
         on_rightclick = function(pos, node, sender)
+            if not sender or not sender:is_player() then
+                return
+            end
             local meta = minetest.get_meta(pos)
             formspecs[sender:get_player_name()] = {pos}
             if on then
