@@ -811,7 +811,7 @@ local box_entity = {
         self.lastpos = self.lastpos or pos
 
         -- Loop through all travelled nodes.
-        for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -0.5 or 0.5) do
+        for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -0.3 or 0.3) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
             local node = get_node(p)
             if node.name == "elevator:shaft" then
