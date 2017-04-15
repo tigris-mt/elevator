@@ -567,6 +567,9 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             minetest.chat_send_player(sender:get_player_name(), "This elevator is not attached to a motor.")
             return true
         end
+        if not formspecs[sender:get_player_name()][2] or not formspecs[sender:get_player_name()][2][minetest.explode_textlist_event(fields.target).index] then
+            return true
+        end
         -- Locate our target elevator.
         local target = nil
         local selected_target = formspecs[sender:get_player_name()][2][minetest.explode_textlist_event(fields.target).index]
