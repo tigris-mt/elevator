@@ -29,10 +29,13 @@ local function load_elevator()
 end
 
 local function save_elevator()
-    local f = io.open(elevator_file .. ".tmp", "w")
+    -- local f = io.open(elevator_file .. ".tmp", "w")
+    -- patch for https://github.com/shacknetisp/elevator/issues/6
+    -- gracefully suggested in https://forum.minetest.net/viewtopic.php?p=298684&sid=98c05fc2a6208dd5e370e150019b0014#p298684
+    local f = io.open(elevator_file , "w")
     f:write(minetest.serialize(elevator))
     f:close()
-    os.rename(elevator_file .. ".tmp", elevator_file)
+    -- os.rename(elevator_file .. ".tmp", elevator_file)
 end
 
 load_elevator()
