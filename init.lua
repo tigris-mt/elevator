@@ -18,9 +18,15 @@ local elevator = {
     motors = {},
 }
 
+local str = minetest.get_mod_storage and minetest.get_mod_storage()
+
 local elevator_file = minetest.get_worldpath() .. "/elevator"
 
 local function load_elevator()
+    if str and str:contains("data") then
+        elevator = minetest.deserialize(str:get_string("data"))
+        return
+    end
     local file = io.open(elevator_file)
     if file then
         elevator = minetest.deserialize(file:read("*all")) or {}
@@ -29,10 +35,13 @@ local function load_elevator()
 end
 
 local function save_elevator()
-    local f = io.open(elevator_file .. ".tmp", "w")
+    if str then
+        str:set_string("data", minetest.serialize(elevator))
+        return
+    end
+    local f = io.open(elevator_file, "w")
     f:write(minetest.serialize(elevator))
     f:close()
-    os.rename(elevator_file .. ".tmp", elevator_file)
 end
 
 load_elevator()
