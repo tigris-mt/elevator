@@ -481,29 +481,50 @@ for _,mode in ipairs({"on", "off"}) do
                 end
                 formspecs[sender:get_player_name()] = {pos, tpnames}
                 if #tpnames > 0 then
-                    formspec = "size[4,6]"
-                    .."label[0,0;Click once to travel.]"
-                    .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
-                    .."field[0.25,5.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                    .."button_exit[-0.05,5.5;4,1;setlabel;Set label]"
+                    if not minetest.is_protected(pos, sender:get_player_name()) then
+                        formspec = "size[4,6]"
+                        .."label[0,0;Click once to travel.]"
+                        .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
+                        .."field[0.25,5.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                        .."button_exit[-0.05,5.5;4,1;setlabel;Set label]"
+                    else
+                        formspec = "size[4,4.4]"
+                        .."label[0,0;Click once to travel.]"
+                        .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
+                    end
                 else
-                    formspec = "size[4,2]"
-                    .."label[0,0;No targets available.]"
-                    .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                    .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                    if not minetest.is_protected(pos, sender:get_player_name()) then
+                        formspec = "size[4,2]"
+                        .."label[0,0;No targets available.]"
+                        .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
+                        .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                    else
+                        formspec = "size[4,0.4]"
+                        .."label[0,0;No targets available.]"
+                    end
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             elseif not elevator.motors[meta:get_string("motor")] then
-                formspec = "size[4,2]"
+                if not minetest.is_protected(pos, sender:get_player_name()) then
+                    formspec = "size[4,2]"
                     .."label[0,0;This elevator is inactive.]"
                     .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
                     .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                else
+                    formspec = "size[4,0.4]"
+                    .."label[0,0;This elevator is inactive.]"
+                end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             elseif boxes[meta:get_string("motor")] then
-                formspec = "size[4,2]"
+                if not minetest.is_protected(pos, sender:get_player_name()) then
+                    formspec = "size[4,2]"
                     .."label[0,0;This elevator is in use.]"
                     .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
                     .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                else
+                    formspec = "size[4,0.4]"
+                    .."label[0,0;This elevator is in use.]"
+                end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             end
         end,
