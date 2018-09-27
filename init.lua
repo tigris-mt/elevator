@@ -23,7 +23,7 @@ local str = minetest.get_mod_storage and minetest.get_mod_storage()
 local elevator_file = minetest.get_worldpath() .. "/elevator"
 
 local function load_elevator()
-    if str and str:contains("data") then
+    if str and ((str.contains and str:contains("data")) or (str:get_string("data") and str:get_string("data") ~= "")) then
         elevator = minetest.deserialize(str:get_string("data"))
         return
     end
