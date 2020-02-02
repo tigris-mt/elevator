@@ -50,8 +50,15 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().target = target
     obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
+    -- FIX for "overshooting"
+    local delta_y = math.abs(pos.y-target.y)
+    local speed = elevator.SPEED
+    if (delta_y<10) then
+       speed = 2
+    end
+
     -- Set the speed.
-    obj:setvelocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
+    obj:setvelocity({x=0, y=speed*obj:get_luaentity().vmult, z=0})
     obj:setacceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
     -- Set the tables.
     elevator.boxes[motorhash] = obj
