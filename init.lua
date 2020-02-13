@@ -8,43 +8,15 @@ local VERSION = 8
 local PTIMEOUT = 120
 
 -- Detect optional mods.
-local technic_path = minetest.get_modpath("technic")
-local chains_path = minetest.get_modpath("chains")
-local homedecor_path = minetest.get_modpath("homedecor")
 local armor_path = minetest.get_modpath("3d_armor")
 
--- Central "network" table.
-local elevator = {
-    motors = {},
-}
+-- global runtime storage for data and references
+-- contains .motors loaded from mod storage and api functions
+elevator = {}
 
-local str = minetest.get_mod_storage and minetest.get_mod_storage()
-
-local elevator_file = minetest.get_worldpath() .. "/elevator"
-
-local function load_elevator()
-    if str and ((str.contains and str:contains("data")) or (str:get_string("data") and str:get_string("data") ~= "")) then
-        elevator = minetest.deserialize(str:get_string("data"))
-        return
-    end
-    local file = io.open(elevator_file)
-    if file then
-        elevator = minetest.deserialize(file:read("*all")) or {}
-        file:close()
-    end
-end
-
-local function save_elevator()
-    if str then
-        str:set_string("data", minetest.serialize(elevator))
-        return
-    end
-    local f = io.open(elevator_file, "w")
-    f:write(minetest.serialize(elevator))
-    f:close()
-end
-
-load_elevator()
+local MP = minetest.get_modpath(minetest.get_current_modname())
+dofile(MP .. "/storage.lua")
+dofile(MP .. "/register.lua")
 
 -- Elevator boxes in action.
 local boxes = {}
@@ -63,36 +35,6 @@ local function get_node(pos)
     if node then return node end
     local _,_ = VoxelManip():read_from_map(pos, pos)
     return minetest.get_node_or_nil(pos)
-end
-
--- Use homedecor's placeholder if possible.
-local placeholder = homedecor_path and "homedecor:expansion_placeholder" or "elevator:placeholder"
-if homedecor_path then
-    minetest.register_alias("elevator:placeholder", "homedecor:expansion_placeholder")
-else
-    -- Placeholder node, in the style of homedecor.
-    minetest.register_node(placeholder, {
-        description = "Expansion Placeholder",
-        selection_box = {
-            type = "fixed",
-            fixed = {0, 0, 0, 0, 0, 0},
-        },
-        groups = {
-            not_in_creative_inventory=1
-        },
-        drawtype = "airlike",
-        paramtype = "light",
-        sunlight_propagates = true,
-
-        walkable = false,
-        buildable_to = false,
-        is_ground_content = false,
-
-        on_dig = function(pos, node, player)
-            minetest.remove_node(pos)
-            minetest.set_node(pos, {name=placeholder})
-        end
-    })
 end
 
 local VISUAL_INCREASE = 1.75
@@ -443,7 +385,7 @@ for _,mode in ipairs({"on", "off"}) do
             -- Add a placeholder to avoid nodes being placed in the top.
             local p = vector.add(pos, {x=0, y=1, z=0})
             local p2 = minetest.dir_to_facedir(placer:get_look_dir())
-            minetest.set_node(p, {name=placeholder, paramtype2="facedir", param2=p2})
+            minetest.set_node(p, {name="elevator:placeholder", paramtype2="facedir", param2=p2})
 
             -- Try to build a motor above.
             local motor = locate_motor(pos)
@@ -459,7 +401,7 @@ for _,mode in ipairs({"on", "off"}) do
         on_place = function(itemstack, placer, pointed_thing)
             local pos  = pointed_thing.above
             local node = minetest.get_node(vector.add(pos, {x=0, y=1, z=0}))
-            if (node ~= nil and node.name ~= "air" and node.name ~= placeholder) then
+            if (node ~= nil and node.name ~= "air" and node.name ~= "elevator:placeholder") then
                 return
             end
             return minetest.item_place(itemstack, placer, pointed_thing)
@@ -540,7 +482,7 @@ for _,mode in ipairs({"on", "off"}) do
 
         on_destruct = function(pos)
             local p = vector.add(pos, {x=0, y=1, z=0})
-            if get_node(p).name == placeholder then
+            if get_node(p).name == "elevator:placeholder" then
                 minetest.remove_node(p)
             end
         end,
@@ -880,87 +822,3 @@ local box_entity = {
 }
 
 minetest.register_entity("elevator:box", box_entity)
-
-if technic_path and chains_path then
-    minetest.register_craft({
-        output = "elevator:elevator",
-        recipe = {
-            {"technic:cast_iron_ingot", "chains:chain", "technic:cast_iron_ingot"},
-            {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
-            {"technic:stainless_steel_ingot", "default:glass", "technic:stainless_steel_ingot"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:shaft",
-        recipe = {
-            {"technic:cast_iron_ingot", "default:glass"},
-            {"default:glass", "glooptest:chainlink"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:motor",
-        recipe = {
-            {"default:diamond", "technic:control_logic_unit", "default:diamond"},
-            {"default:steelblock", "technic:motor", "default:steelblock"},
-            {"chains:chain", "default:diamond", "chains:chain"}
-        },
-    })
-elseif technic_path and farming and farming.mod and farming.mod == "redo" then
-   -- add alternative recipe with hemp rope
-       minetest.register_craft({
-        output = "elevator:elevator",
-        recipe = {
-            {"technic:cast_iron_ingot", "farming:hemp_rope", "technic:cast_iron_ingot"},
-            {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
-            {"technic:stainless_steel_ingot", "default:glass", "technic:stainless_steel_ingot"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:shaft",
-        recipe = {
-            {"technic:cast_iron_ingot", "default:glass"},
-            {"default:glass", "farming:hemp_rope"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:motor",
-        recipe = {
-            {"default:diamond", "technic:control_logic_unit", "default:diamond"},
-            {"default:steelblock", "technic:motor", "default:steelblock"},
-            {"farming:hemp_rope", "default:diamond", "farming:hemp_rope"}
-        },
-    })
-
-   -- Recipes without technic & chains required.
--- Recipes for default dependency fallback.
-else
-    minetest.register_craft({
-        output = "elevator:elevator",
-        recipe = {
-            {"default:steel_ingot", "farming:cotton", "default:steel_ingot"},
-            {"default:steel_ingot", "default:mese_crystal", "default:steel_ingot"},
-            {"xpanes:pane_flat", "default:glass", "xpanes:pane_flat"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:shaft",
-        recipe = {
-            {"default:steel_ingot", "default:obsidian_glass"},
-            {"default:obsidian_glass", "default:steel_ingot"},
-        },
-    })
-
-    minetest.register_craft({
-        output = "elevator:motor",
-        recipe = {
-            {"default:diamond", "default:copper_ingot", "default:diamond"},
-            {"default:steelblock", "default:furnace", "default:steelblock"},
-            {"farming:cotton", "default:diamond", "farming:cotton"}
-        },
-    })
-end
