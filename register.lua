@@ -117,3 +117,85 @@ else
         },
     })
 end
+
+minetest.register_node("elevator:shaft", {
+    description = "Elevator Shaft",
+    tiles = { "elevator_shaft.png" },
+    drawtype = "nodebox",
+    paramtype = "light",
+    on_rotate = screwdriver.disallow,
+    sunlight_propagates = true,
+    groups = {cracky=2, oddly_breakable_by_hand=1},
+    sounds = default.node_sound_stone_defaults(),
+    node_box = {
+        type = "fixed",
+        fixed = {
+            {-8/16,-8/16,-8/16,-7/16,8/16,8/16},
+            {7/16,-8/16,-8/16,8/16,8/16,8/16},
+            {-7/16,-8/16,-8/16,7/16,8/16,-7/16},
+            {-7/16,-8/16,8/16,7/16,8/16,7/16},
+        },
+    },
+    collisionbox = {
+        type = "fixed",
+        fixed = {
+            {-8/16,-8/16,-8/16,-7/16,8/16,8/16},
+            {7/16,-8/16,-8/16,8/16,8/16,8/16},
+            {-7/16,-8/16,-8/16,7/16,8/16,-7/16},
+            {-7/16,-8/16,8/16,7/16,8/16,7/16},
+        },
+    },
+    after_place_node = function(pos)
+        -- We might have connected a motor above to an elevator below.
+        elevator.build_motor(elevator.locate_motor(pos))
+    end,
+    on_destruct = function(pos)
+        -- Remove boxes and deactivate elevators below us.
+        elevator.unbuild(pos, 1)
+    end,
+})
+
+local box = {
+    { 0.48, -0.5,-0.5,  0.5,  1.5, 0.5},
+    {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
+    {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
+    {-0.5 , -0.5, -0.48, 0.5, 1.5, -0.5},
+    { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
+    { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
+}
+
+-- Elevator box node. Not intended to be placeable.
+minetest.register_node("elevator:elevator_box", {
+    description = "Elevator",
+    drawtype = "nodebox",
+    paramtype = 'light',
+    paramtype2 = "facedir",
+    wield_scale = {x=0.6, y=0.6, z=0.6},
+
+    selection_box = {
+            type = "fixed",
+            fixed = { -0.5, -0.5, -0.5, 0.5, 1.5, 0.5 }
+    },
+
+    collision_box = {
+            type = "fixed",
+            fixed = box,
+    },
+
+    node_box = {
+            type = "fixed",
+            fixed = box,
+    },
+
+    tiles = {
+            "default_steel_block.png",
+            "default_steel_block.png",
+            "elevator_box.png",
+            "elevator_box.png",
+            "elevator_box.png",
+            "elevator_box.png",
+    },
+    groups = {not_in_creative_inventory = 1},
+
+    light_source = 4,
+})

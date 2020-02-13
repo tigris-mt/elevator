@@ -12,22 +12,19 @@ local armor_path = minetest.get_modpath("3d_armor")
 
 -- global runtime storage for data and references
 -- contains .motors loaded from mod storage and api functions
-elevator = {}
+elevator = {
+	boxes		= {}, -- Elevator boxes in action.
+	lastboxes	= {}, -- Player near box timeout.
+	riding		= {}, -- Players riding boxes.
+}
 
 local MP = minetest.get_modpath(minetest.get_current_modname())
 dofile(MP .. "/storage.lua")
 dofile(MP .. "/register.lua")
+dofile(MP .. "/hooks.lua")
 
--- Elevator boxes in action.
-local boxes = {}
 -- Player formspecs.
 local formspecs = {}
--- Player near box timeout.
-local lastboxes = {}
--- Players riding boxes.
-local riding = {}
--- Globalstep timer.
-local time = 0
 
 -- Helper function to read unloaded nodes.
 local function get_node(pos)
@@ -64,8 +61,8 @@ local function create_box(motorhash, pos, target, sender)
     obj:setvelocity({x=0, y=SPEED*obj:get_luaentity().vmult, z=0})
     obj:setacceleration({x=0, y=ACCEL*obj:get_luaentity().vmult, z=0})
     -- Set the tables.
-    boxes[motorhash] = obj
-    riding[sender:get_player_name()] = {
+    elevator.boxes[motorhash] = obj
+    elevator.riding[sender:get_player_name()] = {
         motor = motorhash,
         pos = pos,
         target = target,
@@ -75,7 +72,7 @@ local function create_box(motorhash, pos, target, sender)
 end
 
 -- Try to teleport player away from any closed (on) elevator node.
-local function teleport_player_from_elevator(player)
+elevator.teleport_player_from_elevator = function(player)
     local function solid(pos)
         if not minetest.registered_nodes[minetest.get_node(pos).name] then
             return true
@@ -96,64 +93,6 @@ local function teleport_player_from_elevator(player)
     end
 end
 
-minetest.register_globalstep(function(dtime)
-    -- Don't want to run this too often.
-    time = time + dtime
-    if time < 0.5 then
-        return
-    end
-    time = 0
-    -- Only count riders who are still logged in.
-    local newriding = {}
-    for _,p in ipairs(minetest.get_connected_players()) do
-        local pos = p:getpos()
-        local name = p:get_player_name()
-        newriding[name] = riding[name]
-        -- If the player is indeed riding, update their position.
-        if newriding[name] then
-            newriding[name].pos = pos
-        end
-    end
-    riding = newriding
-    for name,r in pairs(riding) do
-        -- If the box is no longer loaded or existent, create another.
-        local ok = r.box and r.box.getpos and r.box:getpos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
-        if not ok then
-            minetest.log("action", "[elevator] "..minetest.pos_to_string(r.pos).." created due to lost rider.")
-            minetest.after(0, create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
-        end
-    end
-    -- Ensure boxes are deleted after <PTIMEOUT> seconds if there are no players nearby.
-    for motor,obj in pairs(boxes) do
-        if type(obj) ~= "table" then
-            return
-        end
-        lastboxes[motor] = lastboxes[motor] and math.min(lastboxes[motor], PTIMEOUT) or PTIMEOUT
-        lastboxes[motor] = math.max(lastboxes[motor] - 1, 0)
-        local pos = obj:getpos()
-        if pos then
-            for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
-                if object.is_player and object:is_player() then
-                    lastboxes[motor] = PTIMEOUT
-                    break
-                end
-            end
-            if lastboxes[motor] < 1 then
-                minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of players.")
-                boxes[motor] = false
-            end
-        else
-            minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of position during player check.")
-            boxes[motor] = false
-        end
-    end
-end)
-
-minetest.register_on_leaveplayer(function(player)
-    -- We don't want players potentially logging into open elevators.
-    teleport_player_from_elevator(player)
-end)
-
 local function phash(pos)
     return minetest.pos_to_string(pos)
 end
@@ -163,7 +102,7 @@ local function punhash(pos)
 end
 
 -- Starting from <pos>, locate a motor hash.
-local function locate_motor(pos)
+elevator.locate_motor = function(pos)
     local p = vector.new(pos)
     while true do
         local node = get_node(p)
@@ -179,7 +118,7 @@ local function locate_motor(pos)
     end
 end
 
-local function build_motor(hash)
+elevator.build_motor = function(hash)
     local need_saving = false
     local motor = elevator.motors[hash]
     -- Just ignore motors that don't exist.
@@ -221,7 +160,7 @@ local function build_motor(hash)
         local meta = minetest.get_meta(pos)
         meta:set_int("version", VERSION)
         if meta:get_string("motor") ~= hash then
-            build_motor(meta:get_string("motor"))
+            elevator.build_motor(meta:get_string("motor"))
         end
         motor.labels[i] = meta:get_string("label")
         meta:set_string("motor", hash)
@@ -230,11 +169,11 @@ local function build_motor(hash)
         end
     end
     if need_saving then
-        save_elevator()
+        elevator.save_elevator()
     end
 end
 
-local function unbuild(pos, add)
+elevator.unbuild = function(pos, add)
     local need_saving = false
     local p = table.copy(pos)
     p.y = p.y - 1
@@ -261,15 +200,15 @@ local function unbuild(pos, add)
             return
         end
         p2.y = p2.y + add
-        local motorhash = locate_motor(p2)
-        build_motor(motorhash)
+        local motorhash = elevator.locate_motor(p2)
+        elevator.build_motor(motorhash)
         -- If there's a box below this point, break it.
-        if boxes[motorhash] and boxes[motorhash]:getpos() and p2.y >= boxes[motorhash]:getpos().y then
-            boxes[motorhash] = nil
+        if elevator.boxes[motorhash] and elevator.boxes[motorhash]:getpos() and p2.y >= elevator.boxes[motorhash]:getpos().y then
+            elevator.boxes[motorhash] = nil
         end
         -- If the box does not exist, just clear it.
-        if boxes[motorhash] and not boxes[motorhash]:getpos() then
-            boxes[motorhash] = nil
+        if elevator.boxes[motorhash] and not elevator.boxes[motorhash]:getpos() then
+            elevator.boxes[motorhash] = nil
         end
     end, table.copy(pos), add)
 end
@@ -293,14 +232,14 @@ minetest.register_node("elevator:motor", {
             pnames = {},
             labels = {},
         }
-        save_elevator()
-        build_motor(phash(pos))
+        elevator.save_elevator()
+        elevator.build_motor(phash(pos))
     end,
     on_destruct = function(pos)
         -- Destroy everything related to this motor.
-        boxes[phash(pos)] = nil
+        elevator.boxes[phash(pos)] = nil
         elevator.motors[phash(pos)] = nil
-        save_elevator()
+        elevator.save_elevator()
     end,
 })
 
@@ -388,14 +327,14 @@ for _,mode in ipairs({"on", "off"}) do
             minetest.set_node(p, {name="elevator:placeholder", paramtype2="facedir", param2=p2})
 
             -- Try to build a motor above.
-            local motor = locate_motor(pos)
+            local motor = elevator.locate_motor(pos)
             if motor then
-                build_motor(motor)
+                elevator.build_motor(motor)
             end
         end,
 
         after_dig_node = function(pos, node, meta, digger)
-            unbuild(pos, 2)
+            elevator.unbuild(pos, 2)
         end,
 
         on_place = function(itemstack, placer, pointed_thing)
@@ -466,7 +405,7 @@ for _,mode in ipairs({"on", "off"}) do
                     .."label[0,0;This elevator is inactive.]"
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
-            elseif boxes[meta:get_string("motor")] then
+            elseif elevator.boxes[meta:get_string("motor")] then
                 if not minetest.is_protected(pos, sender:get_player_name()) then
                     formspec = "size[4,2]"
                     .."label[0,0;This elevator is in use.]"
@@ -506,7 +445,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         meta:set_string("infotext", fields.label)
         -- Rebuild the elevator shaft so the other elevators can read this label.
         local motorhash = meta:get_string("motor")
-        build_motor(elevator.motors[motorhash] and motorhash or locate_motor(pos))
+        elevator.build_motor(elevator.motors[motorhash] and motorhash or elevator.locate_motor(pos))
         return true
     end
     -- Double check if it's ok to go.
@@ -526,11 +465,11 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         local motorhash = meta:get_string("motor")
         local motor = elevator.motors[motorhash]
         if not motor then
-            motorhash = locate_motor(pos)
+            motorhash = elevator.locate_motor(pos)
             motor = elevator.motors[motorhash]
             if motor then
                 meta:set_string("motor", "")
-                build_motor(motorhash)
+                elevator.build_motor(motorhash)
                 minetest.chat_send_player(sender:get_player_name(), "Recalibrated to a new motor, please try again.")
                 return true
             end
@@ -553,7 +492,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         -- Found the elevator? Then go!
         if target then
             -- Final check.
-            if boxes[motorhash] then
+            if elevator.boxes[motorhash] then
                 minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
                 return true
             end
@@ -564,7 +503,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
                 for _,object in ipairs(minetest.get_objects_inside_radius(p, 0.6)) do
                     if object.is_player and object:is_player() then
                         if object:get_player_name() ~= obj:get_luaentity().attached then
-                            teleport_player_from_elevator(object)
+                            elevator.teleport_player_from_elevator(object)
                         end
                     end
                 end
@@ -585,7 +524,7 @@ minetest.register_alias("elevator:elevator", "elevator:elevator_off")
 local function upgrade_elevator(pos, meta)
     if meta:get_int("version") ~= VERSION then
         minetest.log("action", "[elevator] Updating elevator with old version at "..minetest.pos_to_string(pos))
-        minetest.after(0, function(pos) build_motor(locate_motor(pos)) end, pos)
+        minetest.after(0, function(pos) elevator.build_motor(elevator.locate_motor(pos)) end, pos)
         meta:set_int("version", VERSION)
         meta:set_string("formspec", "")
         meta:set_string("infotext", meta:get_string("label"))
@@ -596,7 +535,7 @@ end
 local offabm = function(pos, node)
     local meta = minetest.get_meta(pos)
     upgrade_elevator(pos, meta)
-    if not boxes[meta:get_string("motor")] and elevator.motors[meta:get_string("motor")] then
+    if not elevator.boxes[meta:get_string("motor")] and elevator.motors[meta:get_string("motor")] then
         node.name = "elevator:elevator_on"
         minetest.swap_node(pos, node)
     end
@@ -618,94 +557,12 @@ minetest.register_abm({
     action = function(pos, node)
         local meta = minetest.get_meta(pos)
         upgrade_elevator(pos, meta)
-        if boxes[meta:get_string("motor")] or not elevator.motors[meta:get_string("motor")] then
+        if elevator.boxes[meta:get_string("motor")] or not elevator.motors[meta:get_string("motor")] then
             node.name = "elevator:elevator_off"
             minetest.swap_node(pos, node)
         end
     end,
     label = "Elevator (On)",
-})
-
-minetest.register_node("elevator:shaft", {
-    description = "Elevator Shaft",
-    tiles = { "elevator_shaft.png" },
-    drawtype = "nodebox",
-    paramtype = "light",
-    on_rotate = screwdriver.disallow,
-    sunlight_propagates = true,
-    groups = {cracky=2, oddly_breakable_by_hand=1},
-    sounds = default.node_sound_stone_defaults(),
-    node_box = {
-        type = "fixed",
-        fixed = {
-            {-8/16,-8/16,-8/16,-7/16,8/16,8/16},
-            {7/16,-8/16,-8/16,8/16,8/16,8/16},
-            {-7/16,-8/16,-8/16,7/16,8/16,-7/16},
-            {-7/16,-8/16,8/16,7/16,8/16,7/16},
-        },
-    },
-    collisionbox = {
-        type = "fixed",
-        fixed = {
-            {-8/16,-8/16,-8/16,-7/16,8/16,8/16},
-            {7/16,-8/16,-8/16,8/16,8/16,8/16},
-            {-7/16,-8/16,-8/16,7/16,8/16,-7/16},
-            {-7/16,-8/16,8/16,7/16,8/16,7/16},
-        },
-    },
-    after_place_node = function(pos)
-        -- We might have connected a motor above to an elevator below.
-        build_motor(locate_motor(pos))
-    end,
-    on_destruct = function(pos)
-        -- Remove boxes and deactivate elevators below us.
-        unbuild(pos, 1)
-    end,
-})
-
-local box = {
-    { 0.48, -0.5,-0.5,  0.5,  1.5, 0.5},
-    {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
-    {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
-    {-0.5 , -0.5, -0.48, 0.5, 1.5, -0.5},
-    { -0.5,-0.5,-0.5,0.5,-0.48, 0.5},
-    { -0.5, 1.45,-0.5,0.5, 1.5, 0.5},
-}
-
--- Elevator box node. Not intended to be placeable.
-minetest.register_node("elevator:elevator_box", {
-    description = "Elevator",
-    drawtype = "nodebox",
-    paramtype = 'light',
-    paramtype2 = "facedir",
-    wield_scale = {x=0.6, y=0.6, z=0.6},
-
-    selection_box = {
-            type = "fixed",
-            fixed = { -0.5, -0.5, -0.5, 0.5, 1.5, 0.5 }
-    },
-
-    collision_box = {
-            type = "fixed",
-            fixed = box,
-    },
-
-    node_box = {
-            type = "fixed",
-            fixed = box,
-    },
-
-    tiles = {
-            "default_steel_block.png",
-            "default_steel_block.png",
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
-    },
-    groups = {not_in_creative_inventory = 1},
-
-    light_source = 4,
 })
 
 -- Remove the player from self, and teleport them to pos if specified.
@@ -727,7 +584,7 @@ local function detach(self, pos)
 		pl:setpos(p)
 	end, player, pos)
     end
-    riding[self.attached] = nil
+    elevator.riding[self.attached] = nil
 end
 
 local box_entity = {
@@ -755,7 +612,7 @@ local box_entity = {
         local pos = self.object:getpos()
         -- First, check if this box needs removed.
         -- If the motor has a box and it isn't this box.
-        if boxes[self.motor] and boxes[self.motor] ~= self.object then
+        if elevator.boxes[self.motor] and elevator.boxes[self.motor] ~= self.object then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to duplication.")
             self.object:remove()
             return
@@ -764,22 +621,22 @@ local box_entity = {
         if not minetest.get_player_by_name(self.attached) then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee logged in.")
             self.object:remove()
-            boxes[self.motor] = nil
+            elevator.boxes[self.motor] = nil
             return
         end
         -- If our attached player is no longer with us.
         if not minetest.get_player_by_name(self.attached):get_attach() or minetest.get_player_by_name(self.attached):get_attach():get_luaentity().uid ~= self.uid then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to lack of attachee.")
             self.object:remove()
-            boxes[self.motor] = nil
+            elevator.boxes[self.motor] = nil
             return
         end
         -- If our motor's box is nil, we should self-destruct.
-        if not boxes[self.motor] then
+        if not elevator.boxes[self.motor] then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(pos).." broke due to nil entry in boxes.")
             detach(self)
             self.object:remove()
-            boxes[self.motor] = nil
+            elevator.boxes[self.motor] = nil
             return
         end
 
@@ -799,7 +656,7 @@ local box_entity = {
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke due to arrival.")
                     detach(self, vector.add(self.target, {x=0, y=-0.4, z=0}))
                     self.object:remove()
-                    boxes[self.motor] = nil
+                    elevator.boxes[self.motor] = nil
                     offabm(self.target, node)
                     return
                 end
@@ -810,7 +667,7 @@ local box_entity = {
                 if belownode.name ~= "elevator:elevator_on" and belownode.name ~= "elevator:elevator_off" then
                     -- If we aren't, then break the box.
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke on "..node.name)
-                    boxes[self.motor] = nil
+                    elevator.boxes[self.motor] = nil
                     detach(self, p)
                     self.object:remove()
                     return

@@ -17,10 +17,10 @@ local function load_elevator()
 			file:close()
 		end
 	end
-	elevator.motors = data.motors and data.motors or {}
+	elevator.motors = (data and data.motors) and data.motors or {}
 end
 
-local function save_elevator()
+elevator.save_elevator = function()
     if str then
         str:set_string("data", minetest.serialize({motors = elevator.motors}))
         return
