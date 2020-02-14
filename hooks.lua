@@ -26,7 +26,7 @@ minetest.register_globalstep(function(dtime)
         local ok = r.box and r.box.getpos and r.box:getpos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
         if not ok then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(r.pos).." created due to lost rider.")
-            minetest.after(0, create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
+            minetest.after(0, elevator.create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
         end
     end
     -- Ensure boxes are deleted after <PTIMEOUT> seconds if there are no players nearby.
@@ -34,13 +34,13 @@ minetest.register_globalstep(function(dtime)
         if type(obj) ~= "table" then
             return
         end
-        elevator.lastboxes[motor] = elevator.lastboxes[motor] and math.min(elevator.lastboxes[motor], PTIMEOUT) or PTIMEOUT
+        elevator.lastboxes[motor] = elevator.lastboxes[motor] and math.min(elevator.lastboxes[motor], elevator.PTIMEOUT) or elevator.PTIMEOUT
         elevator.lastboxes[motor] = math.max(elevator.lastboxes[motor] - 1, 0)
         local pos = obj:getpos()
         if pos then
             for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
                 if object.is_player and object:is_player() then
-                    elevator.lastboxes[motor] = PTIMEOUT
+                    elevator.lastboxes[motor] = elevator.PTIMEOUT
                     break
                 end
             end
