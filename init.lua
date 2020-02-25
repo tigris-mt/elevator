@@ -1,3 +1,4 @@
+
 -- Detect optional mods.
 local armor_path = minetest.get_modpath("3d_armor")
 
@@ -10,7 +11,8 @@ elevator = {
 	VISUAL_INCREASE = 1.75,
 	VERSION		= 8,	-- Elevator interface/database version.
 	PTIMEOUT	= minetest.settings:get("elevator_time") or 120,	-- Maximum time a box can go without players nearby.
-
+	SLOW_DIST = 16
+	SLOW_SPEED = 1.75
 	boxes		= {}, -- Elevator boxes in action.
 	lastboxes	= {}, -- Player near box timeout.
 	riding		= {}, -- Players riding boxes.
@@ -52,9 +54,11 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
     -- FIX for "overshooting"
     local delta_y = math.abs(pos.y-target.y)
+	 
     local speed = elevator.SPEED
-    if (delta_y<10) then
-       speed = 2
+    if (delta_y<SLOW_DIST) then
+       speed = SLOW_SPEED
+
     end
 
     -- Set the speed.
