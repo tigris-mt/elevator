@@ -255,7 +255,8 @@ for _,mode in ipairs({"on", "off"}) do
             local formspec
             local meta = minetest.get_meta(pos)
             elevator.formspecs[sender:get_player_name()] = {pos}
-            if on then
+            local motorhash = meta:get_string("motor")
+            if on and elevator.motors[motorhash] then
                 if vector.distance(sender:getpos(), pos) > 1 or minetest.get_node(sender:getpos()).name ~= nodename then
                     minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
                     return
@@ -263,7 +264,6 @@ for _,mode in ipairs({"on", "off"}) do
                 -- Build the formspec from the motor table.
                 local tpnames = {}
                 local tpnames_l = {}
-                local motorhash = meta:get_string("motor")
                 local motor = elevator.motors[motorhash]
                 for ji,jv in ipairs(motor.pnames) do
                     if tonumber(jv) ~= pos.y then
@@ -296,7 +296,7 @@ for _,mode in ipairs({"on", "off"}) do
                     end
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
-            elseif not elevator.motors[meta:get_string("motor")] then
+            elseif not elevator.motors[motorhash] then
                 if not minetest.is_protected(pos, sender:get_player_name()) then
                     formspec = "size[4,2]"
                     .."label[0,0;This elevator is inactive.]"
@@ -307,7 +307,7 @@ for _,mode in ipairs({"on", "off"}) do
                     .."label[0,0;This elevator is inactive.]"
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
-            elseif elevator.boxes[meta:get_string("motor")] then
+            elseif elevator.boxes[motorhash] then
                 if not minetest.is_protected(pos, sender:get_player_name()) then
                     formspec = "size[4,2]"
                     .."label[0,0;This elevator is in use.]"
