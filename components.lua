@@ -3,6 +3,10 @@ local phash = elevator.phash
 local get_node = elevator.get_node
 
 local homedecor_path = minetest.get_modpath("homedecor")
+local mineclone_path = core.get_modpath("mcl_core") and mcl_core
+local default_path = core.get_modpath("default") and default
+
+local moditems = {} -- local table to hold substitutes
 
 -- Use homedecor's placeholder if possible.
 if homedecor_path then
@@ -33,15 +37,36 @@ else
     })
 end
 
+if mineclone_path then
+  moditems.el_shaft_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.el_motor_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.elevator_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.elevator_special_groups = {not_in_creative_inventory=1,pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.sounds_stone = mcl_sounds.node_sound_stone_defaults
+  moditems.el_motor_gfx = "elevator_motor_mcl.png"
+  moditems.el_shaft_gfx = "elevator_shaft_mcl.png"
+  moditems.el_box_gfx = "elevator_box_mcl.png"
+
+elseif default_path then
+  moditems.el_shaft_groups = {cracky=2,oddly_breakable_by_hand=0} -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
+  moditems.el_motor_groups = {cracky=1}
+  moditems.elevator_groups = {cracky=1,choppy=1,snappy=1}
+  moditems.elevator_special_groups = {not_in_creative_inventory=1}
+  moditems.sounds_stone = default.node_sound_stone_defaults
+  moditems.el_motor_gfx = "elevator_motor.png"
+  moditems.el_shaft_gfx = "elevator_shaft.png"
+  moditems.el_box_gfx = "elevator_box.png"
+end
+
 minetest.register_node("elevator:shaft", {
     description = "Elevator Shaft",
-    tiles = { "elevator_shaft.png" },
+    tiles = { moditems.el_shaft_gfx },
     drawtype = "nodebox",
     paramtype = "light",
     on_rotate = screwdriver.disallow,
     sunlight_propagates = true,
-    groups = {cracky=2, oddly_breakable_by_hand=1},
-    sounds = default.node_sound_stone_defaults(),
+    groups = moditems.el_shaft_groups,
+    sounds = moditems.sounds_stone(),
     node_box = {
         type = "fixed",
         fixed = {
@@ -68,6 +93,40 @@ minetest.register_node("elevator:shaft", {
         -- Remove boxes and deactivate elevators below us.
         elevator.unbuild(pos, 1)
     end,
+    _mcl_blast_resistance = 15, -- mineclone2 specific
+    _mcl_hardness = 5, -- mineclone2 specific
+  })
+
+minetest.register_node("elevator:motor", {
+    description = "Elevator Motor",
+    tiles = {
+        "default_steel_block.png",
+        "default_steel_block.png",
+        moditems.el_motor_gfx,
+        moditems.el_motor_gfx,
+        moditems.el_motor_gfx,
+        moditems.el_motor_gfx,
+    },
+    groups = moditems.el_motor_groups,
+    sounds = moditems.sounds_stone(),
+    after_place_node = function(pos, placer, itemstack)
+        -- Set up the motor table.
+        elevator.motors[phash(pos)] = {
+            elevators = {},
+            pnames = {},
+            labels = {},
+        }
+        elevator.save_elevator()
+        elevator.build_motor(phash(pos))
+    end,
+    on_destruct = function(pos)
+        -- Destroy everything related to this motor.
+        elevator.boxes[phash(pos)] = nil
+        elevator.motors[phash(pos)] = nil
+        elevator.save_elevator()
+    end,
+    _mcl_blast_resistance = 15,  -- mineclone2 specific
+	  _mcl_hardness = 5, -- mineclone2 specific
 })
 
 local box = {
@@ -105,44 +164,16 @@ minetest.register_node("elevator:elevator_box", {
     tiles = {
             "default_steel_block.png",
             "default_steel_block.png",
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
-            "elevator_box.png",
+            moditems.el_box_gfx,
+            moditems.el_box_gfx,
+            moditems.el_box_gfx,
+            moditems.el_box_gfx,
     },
-    groups = {not_in_creative_inventory = 1},
+    groups = moditems.elevator_special_groups,
 
     light_source = 4,
-})
-
-minetest.register_node("elevator:motor", {
-    description = "Elevator Motor",
-    tiles = {
-        "default_steel_block.png",
-        "default_steel_block.png",
-        "elevator_motor.png",
-        "elevator_motor.png",
-        "elevator_motor.png",
-        "elevator_motor.png",
-    },
-    groups = {cracky=1},
-    sounds = default.node_sound_stone_defaults(),
-    after_place_node = function(pos, placer, itemstack)
-        -- Set up the motor table.
-        elevator.motors[phash(pos)] = {
-            elevators = {},
-            pnames = {},
-            labels = {},
-        }
-        elevator.save_elevator()
-        elevator.build_motor(phash(pos))
-    end,
-    on_destruct = function(pos)
-        -- Destroy everything related to this motor.
-        elevator.boxes[phash(pos)] = nil
-        elevator.motors[phash(pos)] = nil
-        elevator.save_elevator()
-    end,
+    _mcl_blast_resistance = 15, -- mineclone2 specific
+    _mcl_hardness = 5, -- mineclone2 specific
 })
 
 for _,mode in ipairs({"on", "off"}) do
@@ -201,19 +232,19 @@ for _,mode in ipairs({"on", "off"}) do
         tiles = on and {
                 "default_steel_block.png",
                 "default_steel_block.png",
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
         } or {
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
-                "elevator_box.png",
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
+                moditems.el_box_gfx,
         },
-        groups = {cracky=1, choppy=1, snappy=1},
+        groups = moditems.elevator_groups,
         drop = "elevator:elevator_off",
 
         -- Emit a bit of light when active.
@@ -327,6 +358,9 @@ for _,mode in ipairs({"on", "off"}) do
                 minetest.remove_node(p)
             end
         end,
+
+        _mcl_blast_resistance = 15, -- mineclone2 specific
+        _mcl_hardness = 5, -- mineclone2 specific
     })
 end
 

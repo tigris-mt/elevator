@@ -5,11 +5,11 @@ local armor_path = minetest.get_modpath("3d_armor")
 -- contains .motors loaded from mod storage
 -- runtime variables and api functions
 elevator = {
-	SPEED		= 10,	-- Initial speed of a box.
-	ACCEL		= 0.1,	-- Acceleration of a box.
+	SPEED		= minetest.settings:get("elevator_speed") or 10,	-- Initial speed of a box.
+	ACCEL		= minetest.settings:get("elevator_accel") or 0.1,	-- Acceleration of a box.
 	VISUAL_INCREASE = 1.75,
 	VERSION		= 8,	-- Elevator interface/database version.
-	PTIMEOUT	= 120,	-- Maximum time a box can go without players nearby.
+	PTIMEOUT	= minetest.settings:get("elevator_time") or 120,	-- Maximum time a box can go without players nearby.
 
 	boxes		= {}, -- Elevator boxes in action.
 	lastboxes	= {}, -- Player near box timeout.

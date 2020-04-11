@@ -1,0 +1,8 @@
+# Initial speed of the box
+elevator_speed (Initial elevator speed) float 10
+
+# Acceleration of the box
+elevator_accel (Elevator acceleration) float 0.1
+
+# Maximum time a box can go without players nearby.
+elevator_time (Maximum idle time without players) int 120

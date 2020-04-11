@@ -1,8 +1,36 @@
 -- Detect optional mods.
 local technic_path = minetest.get_modpath("technic")
 local chains_path = minetest.get_modpath("chains")
+local mineclone_path = core.get_modpath("mcl_core") and mcl_core
 
-if technic_path and chains_path then
+if mineclone_path then
+   minetest.register_craft({
+        output = "elevator:elevator",
+        recipe = {
+            {"mcl_core:iron_ingot", "mcl_core:paper", "mcl_core:iron_ingot"},
+            {"mcl_core:iron_ingot", "mcl_core:gold_ingot", "mcl_core:iron_ingot"},
+            {"mcl_core:clay_lump", "group:glass", "mcl_core:clay_lump"},
+        },
+    })
+
+    minetest.register_craft({
+        output = "elevator:shaft",
+        recipe = {
+            {"mcl_core:iron_ingot", "group:wood"},
+            {"group:wood", "mcl_core:iron_ingot"},
+        },
+    })
+
+    minetest.register_craft({
+        output = "elevator:motor",
+        recipe = {
+            {"mcl_core:gold_ingot", "mcl_core:iron_ingot", "mcl_core:gold_ingot"},
+            {"mcl_core:ironblock", "mcl_furnaces:furnace", "mcl_core:ironblock"},
+            {"mcl_core:paper", "mcl_core:gold_ingot", "mcl_core:paper"}
+        },
+    })
+
+elseif technic_path and chains_path then
     minetest.register_craft({
         output = "elevator:elevator",
         recipe = {
