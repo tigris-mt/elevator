@@ -38,7 +38,7 @@ else
 end
 
 if mineclone_path then
-  moditems.el_shaft_groups = { pickaxey=1, handy=1 }
+  moditems.el_shaft_groups = { pickaxey=1, handy=0 } -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
   moditems.el_motor_groups = { pickaxey=2, handy=0 }
   moditems.elevator_groups = { pickaxey=1, axey=1, swordy = 1, handy=0 }
   moditems.sounds_stone = mcl_sounds.node_sound_stone_defaults
@@ -47,7 +47,7 @@ if mineclone_path then
   moditems.el_box_gfx = "elevator_box_mcl.png"
 
 elseif default_path then
-  moditems.el_shaft_groups = { cracky=2, oddly_breakable_by_hand=1}
+  moditems.el_shaft_groups = { cracky=2, oddly_breakable_by_hand = 0} -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
   moditems.el_motor_groups = { cracky=1 }
   moditems.elevator_groups = { cracky=1 , choppy=1, snappy=1 }
   moditems.sounds_stone = default.node_sound_stone_defaults
