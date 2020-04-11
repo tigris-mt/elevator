@@ -13,3 +13,13 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
 OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
+
+----
+Elevator motor and elevator textures for MCL2 are based on "default_glass.png",
+included with MCL2 game, original copyright:
+"MIT License.
+
+The textures are taken from the Minecraft resource pack “Faithful 1.11” by 
+Vattic and xMrVizzy and contributers."
+
+Elevator motor design is (c) minertestdude, redistributed under MIT license.
