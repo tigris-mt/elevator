@@ -38,18 +38,20 @@ else
 end
 
 if mineclone_path then
-  moditems.el_shaft_groups = { pickaxey=1, handy=0 } -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
-  moditems.el_motor_groups = { pickaxey=2, handy=0 }
-  moditems.elevator_groups = { pickaxey=1, axey=1, swordy = 1, handy=0 }
+  moditems.el_shaft_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.el_motor_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.elevator_groups = {pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
+  moditems.elevator_special_groups = {not_in_creative_inventory=1,pickaxey=1,axey=1,handy=1,swordy=1,transport=1,dig_by_piston=1}
   moditems.sounds_stone = mcl_sounds.node_sound_stone_defaults
   moditems.el_motor_gfx = "elevator_motor_mcl.png"
   moditems.el_shaft_gfx = "elevator_shaft_mcl.png"
   moditems.el_box_gfx = "elevator_box_mcl.png"
 
 elseif default_path then
-  moditems.el_shaft_groups = { cracky=2, oddly_breakable_by_hand = 0} -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
-  moditems.el_motor_groups = { cracky=1 }
-  moditems.elevator_groups = { cracky=1 , choppy=1, snappy=1 }
+  moditems.el_shaft_groups = {cracky=2,oddly_breakable_by_hand=0} -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
+  moditems.el_motor_groups = {cracky=1}
+  moditems.elevator_groups = {cracky=1,choppy=1,snappy=1}
+  moditems.elevator_special_groups = {not_in_creative_inventory=1}
   moditems.sounds_stone = default.node_sound_stone_defaults
   moditems.el_motor_gfx = "elevator_motor.png"
   moditems.el_shaft_gfx = "elevator_shaft.png"
@@ -92,7 +94,7 @@ minetest.register_node("elevator:shaft", {
         elevator.unbuild(pos, 1)
     end,
     _mcl_blast_resistance = 15, -- mineclone2 specific
-    _mcl_hardness = 3, -- mineclone2 specific
+    _mcl_hardness = 5, -- mineclone2 specific
   })
 
 minetest.register_node("elevator:motor", {
@@ -124,7 +126,7 @@ minetest.register_node("elevator:motor", {
         elevator.save_elevator()
     end,
     _mcl_blast_resistance = 15,  -- mineclone2 specific
-	  _mcl_hardness = 3, -- mineclone2 specific
+	  _mcl_hardness = 5, -- mineclone2 specific
 })
 
 local box = {
@@ -167,11 +169,11 @@ minetest.register_node("elevator:elevator_box", {
             moditems.el_box_gfx,
             moditems.el_box_gfx,
     },
-    groups = {not_in_creative_inventory = 1}, -- both mcl2 and mtg accept this
+    groups = moditems.elevator_special_groups,
 
     light_source = 4,
     _mcl_blast_resistance = 15, -- mineclone2 specific
-    _mcl_hardness = 3, -- mineclone2 specific
+    _mcl_hardness = 5, -- mineclone2 specific
 })
 
 for _,mode in ipairs({"on", "off"}) do
@@ -358,7 +360,7 @@ for _,mode in ipairs({"on", "off"}) do
         end,
 
         _mcl_blast_resistance = 15, -- mineclone2 specific
-        _mcl_hardness = 3, -- mineclone2 specific
+        _mcl_hardness = 5, -- mineclone2 specific
     })
 end
 
