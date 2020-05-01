@@ -53,7 +53,7 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
     -- FIX for "overshooting"
     local delta_y = math.abs(pos.y-target.y)
-	 
+
     local speed = elevator.SPEED
     if (delta_y<elevator.SLOW_DIST) then
        speed = elevator.SLOW_SPEED
@@ -147,7 +147,6 @@ elevator.build_motor = function(hash)
 end
 
 elevator.unbuild = function(pos, add)
-    local need_saving = false
     local p = table.copy(pos)
     p.y = p.y - 1
     -- Loop down through the network, set any elevators below this to the off position.

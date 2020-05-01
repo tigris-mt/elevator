@@ -15,10 +15,12 @@ read_globals = {
 
 	-- Minetest
 	"minetest",
+	"core",
 	"vector",
 	"VoxelManip",
 
 	-- deps
 	"default", "screwdriver",
 	"farming", "armor",
+	"mcl_core", "mcl_sounds",
 }

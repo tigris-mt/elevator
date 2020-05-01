@@ -13,7 +13,7 @@ elevator.teleport_player_from_elevator = function(player)
     if node.name == "elevator:elevator_on" then
         local front = vector.subtract(pos, minetest.facedir_to_dir(node.param2))
         local front_above = vector.add(front, {x=0, y=1, z=0})
-        local front_below = vector.subtract(front, {x=0, y=1, z=0})
+        -- local front_below = vector.subtract(front, {x=0, y=1, z=0})
         -- If the front isn't solid, it's ok to teleport the player.
         if not solid(front) and not solid(front_above) then
             player:setpos(front)
