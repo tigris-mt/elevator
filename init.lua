@@ -314,6 +314,10 @@ local box_entity = {
         for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -0.3 or 0.3) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
             local node = get_node(p)
+				if vector.distance(p,self.target) < elevator.SLOW_DIST then
+					self.object:set_velocity({x=0, y=elevator.SLOW_SPEED*self.vmult, z=0})
+				end
+
             if node.name == "elevator:shaft" then
                 -- Nothing, just continue on our way.
             elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then

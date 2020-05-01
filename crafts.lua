@@ -56,7 +56,7 @@ elseif technic_path and chains_path then
             {"chains:chain", "default:diamond", "chains:chain"}
         },
     })
-elseif technic_path and farming and farming.mod and farming.mod == "redo" then
+elseif technic_path and farming and farming.mod and ( farming.mod == "redo" or farming.mod == "undo" ) then
    -- add alternative recipe with hemp rope
        minetest.register_craft({
         output = "elevator:elevator",
