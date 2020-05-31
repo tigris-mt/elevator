@@ -12,7 +12,7 @@ minetest.register_globalstep(function(dtime)
     -- Only count riders who are still logged in.
     local newriding = {}
     for _,p in ipairs(minetest.get_connected_players()) do
-        local pos = p:getpos()
+        local pos = p:get_pos()
         local name = p:get_player_name()
         newriding[name] = elevator.riding[name]
         -- If the player is indeed riding, update their position.
@@ -23,7 +23,7 @@ minetest.register_globalstep(function(dtime)
     elevator.riding = newriding
     for name,r in pairs(elevator.riding) do
         -- If the box is no longer loaded or existent, create another.
-        local ok = r.box and r.box.getpos and r.box:getpos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
+        local ok = r.box and r.box.get_pos and r.box:get_pos() and r.box:get_luaentity() and r.box:get_luaentity().attached == name
         if not ok then
             minetest.log("action", "[elevator] "..minetest.pos_to_string(r.pos).." created due to lost rider.")
             minetest.after(0, elevator.create_box, r.motor, r.pos, r.target, minetest.get_player_by_name(name))
@@ -36,7 +36,7 @@ minetest.register_globalstep(function(dtime)
         end
         elevator.lastboxes[motor] = elevator.lastboxes[motor] and math.min(elevator.lastboxes[motor], elevator.PTIMEOUT) or elevator.PTIMEOUT
         elevator.lastboxes[motor] = math.max(elevator.lastboxes[motor] - 1, 0)
-        local pos = obj:getpos()
+        local pos = obj:get_pos()
         if pos then
             for _,object in ipairs(minetest.get_objects_inside_radius(pos, 5)) do
                 if object.is_player and object:is_player() then

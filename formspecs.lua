@@ -22,7 +22,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         return true
     end
     -- Double check if it's ok to go.
-    if vector.distance(sender:getpos(), pos) > 1 then
+    if vector.distance(sender:get_pos(), pos) > 1 then
         return true
     end
     if fields.target then
