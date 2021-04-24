@@ -7,7 +7,7 @@ elevator.teleport_player_from_elevator = function(player)
         end
         return minetest.registered_nodes[minetest.get_node(pos).name].walkable
     end
-    local pos = vector.round(player:getpos())
+    local pos = vector.round(player:get_pos())
     local node = minetest.get_node(pos)
     -- elevator_off is like a shaft, so the player would already be falling.
     if node.name == "elevator:elevator_on" then
