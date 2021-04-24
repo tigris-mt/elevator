@@ -51,8 +51,8 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
     -- Set the speed.
-    obj:setvelocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
-    obj:setacceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
+    obj:set_velocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
+    obj:set_acceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
     -- Set the tables.
     elevator.boxes[motorhash] = obj
     elevator.riding[sender:get_player_name()] = {
