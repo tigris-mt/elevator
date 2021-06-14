@@ -6,7 +6,7 @@ local aurum_path = core.get_modpath("aurum") and aurum
 
 if mineclone_path then
    minetest.register_craft({
-        output = "elevator:elevator",
+        output = "elevator:elevator_off",
         recipe = {
             {"mcl_core:iron_ingot", "mcl_core:paper", "mcl_core:iron_ingot"},
             {"mcl_core:iron_ingot", "mcl_core:gold_ingot", "mcl_core:iron_ingot"},
@@ -32,7 +32,7 @@ if mineclone_path then
     })
 elseif aurum_path then
     minetest.register_craft({
-        output = "elevator:elevator",
+        output = "elevator:elevator_off",
         recipe = {
             {"aurum_ore:iron_ingot", "group:glass", "aurum_ore:iron_ingot"},
             {"aurum_ore:iron_ingot", "aurum_ore:mana_bean", "aurum_ore:iron_ingot"},
@@ -58,7 +58,7 @@ elseif aurum_path then
     })
 elseif technic_path and chains_path then
     minetest.register_craft({
-        output = "elevator:elevator",
+        output = "elevator:elevator_off",
         recipe = {
             {"technic:cast_iron_ingot", "chains:chain", "technic:cast_iron_ingot"},
             {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
@@ -85,7 +85,7 @@ elseif technic_path and chains_path then
 elseif technic_path and farming and farming.mod and farming.mod == "redo" then
    -- add alternative recipe with hemp rope
        minetest.register_craft({
-        output = "elevator:elevator",
+        output = "elevator:elevator_off",
         recipe = {
             {"technic:cast_iron_ingot", "farming:hemp_rope", "technic:cast_iron_ingot"},
             {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
@@ -114,7 +114,7 @@ elseif technic_path and farming and farming.mod and farming.mod == "redo" then
 -- Recipes for default dependency fallback.
 else
     minetest.register_craft({
-        output = "elevator:elevator",
+        output = "elevator:elevator_off",
         recipe = {
             {"default:steel_ingot", "farming:cotton", "default:steel_ingot"},
             {"default:steel_ingot", "default:mese_crystal", "default:steel_ingot"},
