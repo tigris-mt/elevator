@@ -10,7 +10,8 @@ elevator = {
 	VISUAL_INCREASE = 1.75,
 	VERSION		= 8,	-- Elevator interface/database version.
 	PTIMEOUT	= minetest.settings:get("elevator_time") or 120,	-- Maximum time a box can go without players nearby.
-
+	SLOW_DIST = 16,
+	SLOW_SPEED = 1.75,
 	boxes		= {}, -- Elevator boxes in action.
 	lastboxes	= {}, -- Player near box timeout.
 	riding		= {}, -- Players riding boxes.
@@ -50,9 +51,19 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().target = target
     obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
+    -- FIX for "overshooting"
+    local delta_y = math.abs(pos.y-target.y)
+
+    local speed = elevator.SPEED
+    if (delta_y<elevator.SLOW_DIST) then
+       speed = elevator.SLOW_SPEED
+
+    end
+
     -- Set the speed.
-    obj:set_velocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
+    obj:set_velocity({x=0, y=speed*obj:get_luaentity().vmult, z=0})
     obj:set_acceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
+
     -- Set the tables.
     elevator.boxes[motorhash] = obj
     elevator.riding[sender:get_player_name()] = {
@@ -137,7 +148,6 @@ elevator.build_motor = function(hash)
 end
 
 elevator.unbuild = function(pos, add)
-    local need_saving = false
     local p = table.copy(pos)
     p.y = p.y - 1
     -- Loop down through the network, set any elevators below this to the off position.
@@ -304,6 +314,10 @@ local box_entity = {
         for y=self.lastpos.y,pos.y,((self.lastpos.y > pos.y) and -0.3 or 0.3) do
             local p = vector.round({x=pos.x, y=y, z=pos.z})
             local node = get_node(p)
+				if vector.distance(p,self.target) < elevator.SLOW_DIST then
+					self.object:set_velocity({x=0, y=elevator.SLOW_SPEED*self.vmult, z=0})
+				end
+
             if node.name == "elevator:shaft" then
                 -- Nothing, just continue on our way.
             elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
