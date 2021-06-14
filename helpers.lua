@@ -7,7 +7,7 @@ elevator.teleport_player_from_elevator = function(player)
         end
         return minetest.registered_nodes[minetest.get_node(pos).name].walkable
     end
-    local pos = vector.round(player:getpos())
+    local pos = vector.round(player:get_pos())
     local node = minetest.get_node(pos)
     -- elevator_off is like a shaft, so the player would already be falling.
     if node.name == "elevator:elevator_on" then
@@ -16,7 +16,7 @@ elevator.teleport_player_from_elevator = function(player)
         local front_below = vector.subtract(front, {x=0, y=1, z=0})
         -- If the front isn't solid, it's ok to teleport the player.
         if not solid(front) and not solid(front_above) then
-            player:setpos(front)
+            player:set_pos(front)
         end
     end
 end
