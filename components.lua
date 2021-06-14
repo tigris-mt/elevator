@@ -288,7 +288,7 @@ for _,mode in ipairs({"on", "off"}) do
             elevator.formspecs[sender:get_player_name()] = {pos}
             local motorhash = meta:get_string("motor")
             if on and elevator.motors[motorhash] then
-                if vector.distance(sender:getpos(), pos) > 1 or minetest.get_node(sender:getpos()).name ~= nodename then
+                if vector.distance(sender:get_pos(), pos) > 1 or minetest.get_node(sender:get_pos()).name ~= nodename then
                     minetest.chat_send_player(sender:get_player_name(), "You are not inside the booth.")
                     return
                 end

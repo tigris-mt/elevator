@@ -33,9 +33,9 @@ local get_node = elevator.get_node
 elevator.create_box = function(motorhash, pos, target, sender)
     -- First create the box.
     local obj = minetest.add_entity(pos, "elevator:box")
-    obj:setpos(pos)
+    obj:set_pos(pos)
     -- Attach the player.
-    sender:setpos(pos)
+    sender:set_pos(pos)
     sender:set_attach(obj, "", {x=0, y=9, z=0}, {x=0, y=0, z=0})
     sender:set_eye_offset({x=0, y=-9, z=0},{x=0, y=-9, z=0})
     sender:set_properties({visual_size = {x=elevator.VISUAL_INCREASE, y=elevator.VISUAL_INCREASE}})
@@ -51,8 +51,8 @@ elevator.create_box = function(motorhash, pos, target, sender)
     obj:get_luaentity().halfway = {x=pos.x, y=(pos.y+target.y)/2, z=pos.z}
     obj:get_luaentity().vmult = (target.y < pos.y) and -1 or 1
     -- Set the speed.
-    obj:setvelocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
-    obj:setacceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
+    obj:set_velocity({x=0, y=elevator.SPEED*obj:get_luaentity().vmult, z=0})
+    obj:set_acceleration({x=0, y=elevator.ACCEL*obj:get_luaentity().vmult, z=0})
     -- Set the tables.
     elevator.boxes[motorhash] = obj
     elevator.riding[sender:get_player_name()] = {
@@ -166,11 +166,11 @@ elevator.unbuild = function(pos, add)
         local motorhash = elevator.locate_motor(p2)
         elevator.build_motor(motorhash)
         -- If there's a box below this point, break it.
-        if elevator.boxes[motorhash] and elevator.boxes[motorhash]:getpos() and p2.y >= elevator.boxes[motorhash]:getpos().y then
+        if elevator.boxes[motorhash] and elevator.boxes[motorhash]:get_pos() and p2.y >= elevator.boxes[motorhash]:get_pos().y then
             elevator.boxes[motorhash] = nil
         end
         -- If the box does not exist, just clear it.
-        if elevator.boxes[motorhash] and not elevator.boxes[motorhash]:getpos() then
+        if elevator.boxes[motorhash] and not elevator.boxes[motorhash]:get_pos() then
             elevator.boxes[motorhash] = nil
         end
     end, table.copy(pos), add)
@@ -235,9 +235,9 @@ local function detach(self, pos)
         armor:update_player_visuals(player)
     end
     if pos then
-        player:setpos(pos)
+        player:set_pos(pos)
 	minetest.after(0.1, function(pl, p)
-		pl:setpos(p)
+		pl:set_pos(p)
 	end, player, pos)
     end
     elevator.riding[self.attached] = nil
@@ -265,7 +265,7 @@ local box_entity = {
     end,
 
     on_step = function(self, dtime)
-        local pos = self.object:getpos()
+        local pos = self.object:get_pos()
         -- First, check if this box needs removed.
         -- If the motor has a box and it isn't this box.
         if elevator.boxes[self.motor] and elevator.boxes[self.motor] ~= self.object then
@@ -296,7 +296,7 @@ local box_entity = {
             return
         end
 
-        minetest.get_player_by_name(self.attached):setpos(pos)
+        minetest.get_player_by_name(self.attached):set_pos(pos)
         -- Ensure lastpos is set to something.
         self.lastpos = self.lastpos or pos
 
