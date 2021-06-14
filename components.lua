@@ -5,6 +5,7 @@ local get_node = elevator.get_node
 local homedecor_path = minetest.get_modpath("homedecor")
 local mineclone_path = core.get_modpath("mcl_core") and mcl_core
 local default_path = core.get_modpath("default") and default
+local aurum_path = core.get_modpath("aurum") and aurum
 
 local moditems = {} -- local table to hold substitutes
 
@@ -46,7 +47,7 @@ if mineclone_path then
   moditems.el_motor_gfx = "elevator_motor_mcl.png"
   moditems.el_shaft_gfx = "elevator_shaft_mcl.png"
   moditems.el_box_gfx = "elevator_box_mcl.png"
-
+  moditems.steel_block_image = "default_steel_block.png"
 elseif default_path then
   moditems.el_shaft_groups = {cracky=2,oddly_breakable_by_hand=0} -- removing ability to destroy by hand to prevent accidental breakage of whole elevators
   moditems.el_motor_groups = {cracky=1}
@@ -56,6 +57,21 @@ elseif default_path then
   moditems.el_motor_gfx = "elevator_motor.png"
   moditems.el_shaft_gfx = "elevator_shaft.png"
   moditems.el_box_gfx = "elevator_box.png"
+  moditems.steel_block_image = "default_steel_block.png"
+elseif aurum_path then
+    moditems.el_shaft_groups = {dig_pick = 2}
+    moditems.el_motor_groups = {dig_pick = 1}
+    moditems.elevator_groups = {dig_pick = 1}
+    moditems.elevator_special_groups = {not_in_creative_inventory=1}
+    moditems.sounds_stone = aurum.sounds.stone
+    moditems.el_motor_gfx = "elevator_motor.png"
+    moditems.el_shaft_gfx = "elevator_shaft.png"
+    moditems.el_box_gfx = "elevator_box.png"
+    moditems.steel_block_image = "aurum_ore_white.png^[colorize:#cbcdcd:255^aurum_ore_bumps.png^aurum_ore_block.png"
+end
+
+if minetest.global_exists("screwdriver") then
+    moditems.on_rotate_disallow = screwdriver.disallow
 end
 
 minetest.register_node("elevator:shaft", {
@@ -63,7 +79,7 @@ minetest.register_node("elevator:shaft", {
     tiles = { moditems.el_shaft_gfx },
     drawtype = "nodebox",
     paramtype = "light",
-    on_rotate = screwdriver.disallow,
+    on_rotate = moditems.on_rotate_disallow,
     sunlight_propagates = true,
     groups = moditems.el_shaft_groups,
     sounds = moditems.sounds_stone(),
@@ -100,8 +116,8 @@ minetest.register_node("elevator:shaft", {
 minetest.register_node("elevator:motor", {
     description = "Elevator Motor",
     tiles = {
-        "default_steel_block.png",
-        "default_steel_block.png",
+        moditems.steel_block_image,
+        moditems.steel_block_image,
         moditems.el_motor_gfx,
         moditems.el_motor_gfx,
         moditems.el_motor_gfx,
@@ -162,8 +178,8 @@ minetest.register_node("elevator:elevator_box", {
     },
 
     tiles = {
-            "default_steel_block.png",
-            "default_steel_block.png",
+            moditems.steel_block_image,
+            moditems.steel_block_image,
             moditems.el_box_gfx,
             moditems.el_box_gfx,
             moditems.el_box_gfx,
@@ -212,7 +228,7 @@ for _,mode in ipairs({"on", "off"}) do
         sunlight_propagates = false,
         paramtype = "light",
         paramtype2 = "facedir",
-        on_rotate = screwdriver.disallow,
+        on_rotate = moditems.on_rotate_disallow,
 
         selection_box = {
                 type = "fixed",
@@ -230,8 +246,8 @@ for _,mode in ipairs({"on", "off"}) do
         },
 
         tiles = on and {
-                "default_steel_block.png",
-                "default_steel_block.png",
+                moditems.steel_block_image,
+                moditems.steel_block_image,
                 moditems.el_box_gfx,
                 moditems.el_box_gfx,
                 moditems.el_box_gfx,

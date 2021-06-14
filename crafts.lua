@@ -2,6 +2,7 @@
 local technic_path = minetest.get_modpath("technic")
 local chains_path = minetest.get_modpath("chains")
 local mineclone_path = core.get_modpath("mcl_core") and mcl_core
+local aurum_path = core.get_modpath("aurum") and aurum
 
 if mineclone_path then
    minetest.register_craft({
@@ -29,7 +30,32 @@ if mineclone_path then
             {"mcl_core:paper", "mcl_core:gold_ingot", "mcl_core:paper"}
         },
     })
+elseif aurum_path then
+    minetest.register_craft({
+        output = "elevator:elevator",
+        recipe = {
+            {"aurum_ore:iron_ingot", "group:glass", "aurum_ore:iron_ingot"},
+            {"aurum_ore:iron_ingot", "aurum_ore:mana_bean", "aurum_ore:iron_ingot"},
+            {"aurum_ore:iron_ingot", "group:glass", "aurum_ore:iron_ingot"},
+        },
+    })
 
+    minetest.register_craft({
+        output = "elevator:shaft",
+        recipe = {
+            {"group:glass", "aurum_ore:iron_ingot"},
+            {"group:wood", "group:glass"},
+        },
+    })
+
+    minetest.register_craft({
+        output = "elevator:motor",
+        recipe = {
+            {"aurum_ore:gold_ingot", "aurum_ore:iron_ingot", "aurum_ore:gold_ingot"},
+            {"aurum_ore:iron_block", "aurum_cook:oven", "aurum_ore:iron_block"},
+            {"aurum_ore:gold_ingot", "aurum_ore:mana_bean", "aurum_ore:gold_ingot"}
+        },
+    })
 elseif technic_path and chains_path then
     minetest.register_craft({
         output = "elevator:elevator",
