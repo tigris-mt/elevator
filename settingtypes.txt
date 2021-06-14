@@ -6,3 +6,9 @@ elevator_accel (Elevator acceleration) float 0.1
 
 # Maximum time a box can go without players nearby.
 elevator_time (Maximum idle time without players) int 120
+
+# When the elevator is within this number of nodes of the destination, slow down to avoid lag.
+elevator_slow_dist (Elevator slow distance) int 16
+
+# Multiplier for speed when the elevator approaches its slow target.
+elevator_slow_speed_factor (Elevator slow speed factor) float 0.11
