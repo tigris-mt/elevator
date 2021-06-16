@@ -23,4 +23,5 @@ read_globals = {
 	"default", "screwdriver",
 	"farming", "armor",
 	"mcl_core", "mcl_sounds",
+	"aurum",
 }

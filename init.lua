@@ -99,9 +99,8 @@ elevator.build_motor = function(hash)
         return
     end
     local p = punhash(hash)
-    local node = get_node(p)
     -- And ignore motors that aren't motors.
-    if node.name ~= "elevator:motor" then
+    if get_node(p).name ~= "elevator:motor" then
         return
     end
     p.y = p.y - 1
@@ -110,19 +109,23 @@ elevator.build_motor = function(hash)
     motor.labels = {}
     -- Run down through the shaft, storing information about elevators.
     while true do
-        local node = get_node(p)
-        if node.name == "elevator:shaft" then
+        local next_node = get_node(p)
+        if next_node.name == "elevator:shaft" then
+            -- Shaft, just keep going down.
             p.y = p.y - 1
         else
+            -- Wasn't shaft. Go down one, to skip placeholders, and then test for elevators.
             p.y = p.y - 1
-            local node = get_node(p)
-            if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
+            local elevator_node = get_node(p)
+            if elevator_node.name == "elevator:elevator_on" or elevator_node.name == "elevator:elevator_off" then
+                -- Was elevator, insert into table and continue.
                 table.insert(motor.elevators, phash(p))
                 table.insert(motor.pnames, tostring(p.y))
                 table.insert(motor.labels, "")
                 p.y = p.y - 1
                 need_saving = true
             else
+                -- Was no elevator, this is the end of the shaft.
                 break
             end
         end
@@ -151,13 +154,12 @@ elevator.unbuild = function(pos, add)
     p.y = p.y - 1
     -- Loop down through the network, set any elevators below this to the off position.
     while true do
-        local node = get_node(p)
-        if node.name == "elevator:shaft" then
+        if get_node(p).name == "elevator:shaft" then
             p.y = p.y - 1
         else
             p.y = p.y - 1
-            local node = get_node(p)
-            if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
+            local elevator_node = get_node(p)
+            if elevator_node.name == "elevator:elevator_on" or elevator_node.name == "elevator:elevator_off" then
                 local meta = minetest.get_meta(p)
                 meta:set_string("motor", "")
                 p.y = p.y - 1
@@ -167,7 +169,7 @@ elevator.unbuild = function(pos, add)
         end
     end
     -- After a short delay, build the motor and handle box removal.
-    minetest.after(0.01, function(p2, add)
+    minetest.after(0.01, function(p2)
         if not p2 or not add then
             return
         end
@@ -182,14 +184,14 @@ elevator.unbuild = function(pos, add)
         if elevator.boxes[motorhash] and not elevator.boxes[motorhash]:get_pos() then
             elevator.boxes[motorhash] = nil
         end
-    end, table.copy(pos), add)
+    end, table.copy(pos))
 end
 
 -- Ensure an elevator is up to the latest version.
 local function upgrade_elevator(pos, meta)
     if meta:get_int("version") ~= elevator.VERSION then
         minetest.log("action", "[elevator] Updating elevator with old version at "..minetest.pos_to_string(pos))
-        minetest.after(0, function(pos) elevator.build_motor(elevator.locate_motor(pos)) end, pos)
+        minetest.after(0, function() elevator.build_motor(elevator.locate_motor(pos)) end)
         meta:set_int("version", elevator.VERSION)
         meta:set_string("formspec", "")
         meta:set_string("infotext", meta:get_string("label"))
@@ -317,9 +319,7 @@ local box_entity = {
                 self.object:set_velocity({x=0, y=elevator.SPEED*elevator.SLOW_SPEED_FACTOR*self.vmult, z=0})
             end
 
-            if node.name == "elevator:shaft" then
-                -- Nothing, just continue on our way.
-            elseif node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
+            if node.name == "elevator:elevator_on" or node.name == "elevator:elevator_off" then
                 -- If this is our target, detach the player here, destroy this box, and update the target elevator without waiting for the abm.
                 if vector.distance(p, self.target) < 1 then
                     minetest.log("action", "[elevator] "..minetest.pos_to_string(p).." broke due to arrival.")
@@ -329,7 +329,7 @@ local box_entity = {
                     offabm(self.target, node)
                     return
                 end
-            else
+            elseif node.name ~= "elevator:shaft" then
                 -- Check if we're in the top part of an elevator, if so it's fine.
                 local below = vector.add(p, {x=0,y=-1,z=0})
                 local belownode = get_node(below)

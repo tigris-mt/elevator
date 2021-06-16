@@ -146,7 +146,8 @@ minetest.register_node("elevator:motor", {
 	  _mcl_hardness = 5, -- mineclone2 specific
 })
 
-local box = {
+-- Box of the active entitity.
+local box_box = {
     { 0.48, -0.5,-0.5,  0.5,  1.5, 0.5},
     {-0.5 , -0.5, 0.48, 0.48, 1.5, 0.5},
     {-0.5,  -0.5,-0.5 ,-0.48, 1.5, 0.5},
@@ -170,12 +171,12 @@ minetest.register_node("elevator:elevator_box", {
 
     collision_box = {
             type = "fixed",
-            fixed = box,
+            fixed = box_box,
     },
 
     node_box = {
             type = "fixed",
-            fixed = box,
+            fixed = box_box,
     },
 
     tiles = {
