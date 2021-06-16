@@ -298,17 +298,17 @@ for _,mode in ipairs({"on", "off"}) do
             return minetest.item_place(itemstack, placer, pointed_thing)
         end,
 
-        on_rightclick = function(pos, node, sender)
+        on_rightclick = function(pos, node, sender, itemstack, pointed_thing)
             if not sender or not sender:is_player() then
                 return
             end
-            -- Don't do anything when the player is holding elevator components.
+            -- When the player is holding elevator components, just place them instead of opening the formspec.
             if ({
               ["elevator:elevator_off"] = true,
               ["elevator:shaft"] = true,
               ["elevator:motor"] = true,
             })[sender:get_wielded_item():get_name()] then
-                return
+                return core.item_place_node(itemstack, sender, pointed_thing)
             end
             local formspec
             local meta = minetest.get_meta(pos)
