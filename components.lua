@@ -83,6 +83,7 @@ minetest.register_node("elevator:shaft", {
     sunlight_propagates = true,
     groups = moditems.el_shaft_groups,
     sounds = moditems.sounds_stone(),
+    climbable = true,
     node_box = {
         type = "fixed",
         fixed = {
