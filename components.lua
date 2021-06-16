@@ -230,6 +230,7 @@ for _,mode in ipairs({"on", "off"}) do
         paramtype = "light",
         paramtype2 = "facedir",
         on_rotate = moditems.on_rotate_disallow,
+        climbable = true,
 
         selection_box = {
                 type = "fixed",
@@ -305,7 +306,7 @@ for _,mode in ipairs({"on", "off"}) do
               ["elevator:elevator_off"] = true,
               ["elevator:shaft"] = true,
               ["elevator:motor"] = true,
-            })[sender:get_wielditem():get_name()] then
+            })[sender:get_wielded_item():get_name()] then
                 return
             end
             local formspec
