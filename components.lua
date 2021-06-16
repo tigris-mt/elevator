@@ -78,6 +78,7 @@ minetest.register_node("elevator:shaft", {
     description = "Elevator Shaft",
     tiles = { moditems.el_shaft_gfx },
     drawtype = "nodebox",
+    use_texture_alpha = "clip",
     paramtype = "light",
     on_rotate = moditems.on_rotate_disallow,
     sunlight_propagates = true,
@@ -188,6 +189,7 @@ minetest.register_node("elevator:elevator_box", {
             moditems.el_box_gfx,
     },
     groups = moditems.elevator_special_groups,
+    use_texture_alpha = "clip",
 
     light_source = 4,
     _mcl_blast_resistance = 15, -- mineclone2 specific
@@ -263,6 +265,8 @@ for _,mode in ipairs({"on", "off"}) do
                 moditems.el_box_gfx,
                 moditems.el_box_gfx,
         },
+        use_texture_alpha = "clip",
+
         groups = moditems.elevator_groups,
         drop = "elevator:elevator_off",
 
