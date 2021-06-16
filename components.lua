@@ -300,6 +300,14 @@ for _,mode in ipairs({"on", "off"}) do
             if not sender or not sender:is_player() then
                 return
             end
+            -- Don't do anything when the player is holding elevator components.
+            if ({
+              ["elevator:elevator_off"] = true,
+              ["elevator:shaft"] = true,
+              ["elevator:motor"] = true,
+            })[sender:get_wielditem():get_name()] then
+                return
+            end
             local formspec
             local meta = minetest.get_meta(pos)
             elevator.formspecs[sender:get_player_name()] = {pos}
