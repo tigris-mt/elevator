@@ -76,6 +76,8 @@ end
 
 minetest.register_node("elevator:shaft", {
     description = "Elevator Shaft",
+    _doc_items_longdesc = "An elevator shaft that connects elevators to other elevators and motors.",
+    _doc_items_usagehelp = "Building a vertical stack of elevators and shafts with an elevator motor on top allows vertical transportation.",
     tiles = { moditems.el_shaft_gfx },
     drawtype = "nodebox",
     use_texture_alpha = "clip",
@@ -117,6 +119,8 @@ minetest.register_node("elevator:shaft", {
 
 minetest.register_node("elevator:motor", {
     description = "Elevator Motor",
+    _doc_items_longdesc = "The engine powering an elevator shaft. Placed at the top.",
+    _doc_items_usagehelp = "Place the motor on the top of a stack of elevators and elevator shafts. The elevators will activate and you can then use them.",
     tiles = {
         moditems.steel_block_image,
         moditems.steel_block_image,
@@ -234,6 +238,9 @@ for _,mode in ipairs({"on", "off"}) do
         paramtype2 = "facedir",
         on_rotate = moditems.on_rotate_disallow,
         climbable = true,
+
+        _doc_items_longdesc = on and "An active elevator, ready for transporting." or "An inactive elevator, not connected to a motor.",
+        _doc_items_usagehelp = on and "Step inside this elevator and use it (right-click) to be transported to any other elevator along the shaft." or "This elevator is inactive; it is disconnected from a motor. It may be extended with shafts and other elevators in a vertical line with an elevator motor on top to power the whole shaft and enable transport.",
 
         selection_box = {
                 type = "fixed",
