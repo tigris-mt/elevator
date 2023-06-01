@@ -205,6 +205,7 @@ for _,mode in ipairs({"on", "off"}) do
     local on = (mode == "on")
     local box
     local cbox
+    local groups = table.copy(moditems.elevator_groups)
     if on then
         -- Active elevators have a ceiling and floor.
         box = {
@@ -219,6 +220,7 @@ for _,mode in ipairs({"on", "off"}) do
         cbox = table.copy(box)
         -- But you can enter them from the top.
         cbox[5] = nil
+        groups.not_in_creative_inventory = 1
     else
         -- Inactive elevators are almost like shafts.
         box = {
@@ -274,7 +276,7 @@ for _,mode in ipairs({"on", "off"}) do
         },
         use_texture_alpha = "clip",
 
-        groups = moditems.elevator_groups,
+        groups = groups,
         drop = "elevator:elevator_off",
 
         -- Emit a bit of light when active.
