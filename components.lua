@@ -68,6 +68,17 @@ elseif aurum_path then
     moditems.el_shaft_gfx = "elevator_shaft.png"
     moditems.el_box_gfx = "elevator_box.png"
     moditems.steel_block_image = "aurum_ore_white.png^[colorize:#cbcdcd:255^aurum_ore_bumps.png^aurum_ore_block.png"
+else
+    -- fallback for unknown games
+    moditems.el_shaft_groups = {cracky=2, oddly_breakable_by_hand=0}
+    moditems.el_motor_groups = {cracky=1}
+    moditems.elevator_groups = {cracky=1, choppy=1, snappy=1}
+    moditems.elevator_special_groups = {not_in_creative_inventory=1}
+    moditems.sounds_stone = function() end
+    moditems.el_motor_gfx = "elevator_motor.png"
+    moditems.el_shaft_gfx = "elevator_shaft.png"
+    moditems.el_box_gfx = "elevator_box.png"
+    moditems.steel_block_image = "elevator_steel_block.png"
 end
 
 if minetest.global_exists("screwdriver") then
