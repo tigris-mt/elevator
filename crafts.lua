@@ -110,8 +110,8 @@ elseif technic_path and basic_materials_path then
         },
     })
 elseif technic_path and farming and farming.mod and ( farming.mod == "redo" or farming.mod == "undo" ) then
-   -- add alternative recipe with hemp rope
-       minetest.register_craft({
+    -- add alternative recipe with hemp rope
+    minetest.register_craft({
         output = "elevator:elevator_off",
         recipe = {
             {"technic:cast_iron_ingot", "farming:hemp_rope", "technic:cast_iron_ingot"},
