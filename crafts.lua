@@ -3,6 +3,7 @@ local technic_path = minetest.get_modpath("technic")
 local chains_path = minetest.get_modpath("chains")
 local mineclone_path = core.get_modpath("mcl_core") and mcl_core
 local aurum_path = core.get_modpath("aurum") and aurum
+local basic_materials_path = core.get_modpath("basic_materials")
 
 if mineclone_path then
    minetest.register_craft({
@@ -82,9 +83,35 @@ elseif technic_path and chains_path then
             {"chains:chain", "default:diamond", "chains:chain"}
         },
     })
+elseif technic_path and basic_materials_path then
+    minetest.register_craft({
+        output = "elevator:elevator_off",
+        recipe = {
+            {"technic:cast_iron_ingot", "basic_materials:chain_steel", "technic:cast_iron_ingot"},
+            {"technic:cast_iron_ingot", "default:mese_crystal", "technic:cast_iron_ingot"},
+            {"technic:stainless_steel_ingot", "default:glass", "technic:stainless_steel_ingot"},
+        },
+    })
+
+    minetest.register_craft({
+        output = "elevator:shaft",
+        recipe = {
+            {"technic:cast_iron_ingot", "default:glass"},
+            {"default:glass", "basic_materials:chain_steel"},
+        },
+    })
+
+    minetest.register_craft({
+        output = "elevator:motor",
+        recipe = {
+            {"default:diamond", "technic:control_logic_unit", "default:diamond"},
+            {"default:steelblock", "technic:motor", "default:steelblock"},
+            {"basic_materials:chain_steel", "default:diamond", "basic_materials:chain_steel"}
+        },
+    })
 elseif technic_path and farming and farming.mod and ( farming.mod == "redo" or farming.mod == "undo" ) then
-   -- add alternative recipe with hemp rope
-       minetest.register_craft({
+    -- add alternative recipe with hemp rope
+    minetest.register_craft({
         output = "elevator:elevator_off",
         recipe = {
             {"technic:cast_iron_ingot", "farming:hemp_rope", "technic:cast_iron_ingot"},
