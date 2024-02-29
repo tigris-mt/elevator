@@ -96,6 +96,7 @@ minetest.register_node("elevator:shaft", {
     on_rotate = moditems.on_rotate_disallow,
     sunlight_propagates = true,
     groups = moditems.el_shaft_groups,
+    is_ground_content = false,
     sounds = moditems.sounds_stone(),
     climbable = true,
     node_box = {
@@ -141,6 +142,7 @@ minetest.register_node("elevator:motor", {
         moditems.el_motor_gfx,
     },
     groups = moditems.el_motor_groups,
+    is_ground_content = false,
     sounds = moditems.sounds_stone(),
     after_place_node = function(pos, placer, itemstack)
         -- Set up the motor table.
@@ -204,6 +206,7 @@ minetest.register_node("elevator:elevator_box", {
             moditems.el_box_gfx,
     },
     groups = moditems.elevator_special_groups,
+    is_ground_content = false,
     use_texture_alpha = "clip",
 
     light_source = 4,
@@ -288,6 +291,7 @@ for _,mode in ipairs({"on", "off"}) do
         use_texture_alpha = "clip",
 
         groups = groups,
+        is_ground_content = false,
         drop = "elevator:elevator_off",
 
         -- Emit a bit of light when active.
