@@ -1,3 +1,6 @@
+local S = minetest.get_translator("elevator")
+local F = minetest.formspec_escape
+local FS = function(...) return F(S(...)) end
 
 local punhash = elevator.punhash
 
@@ -30,7 +33,9 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         -- HACK: With player information extensions enabled, we can check if closing formspecs are now allowed. This is specifically used on Survival in Ethereal.
         local pi = minetest.get_player_information(sender:get_player_name())
         if (not (pi.major == 0 and pi.minor == 4 and pi.patch == 15)) and (pi.protocol_version or 29) < 29 then
-            closeformspec = "size[4,2] label[0,0;You are now using the elevator.\nUpgrade Minetest to avoid this dialog.] button_exit[0,1;4,1;close;Close]"
+            closeformspec = "size[4,2]" ..
+                "label[0,0;" .. FS("You are now using the elevator.\nUpgrade Minetest to avoid this dialog.") .. "]" ..
+                "button_exit[0,1;4,1;close;" .. FS("Close") .. "]"
         end
         -- End hacky HACK.
         minetest.after(0.2, minetest.show_formspec, sender:get_player_name(), "elevator:elevator", closeformspec)
@@ -43,12 +48,12 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
             if motor then
                 meta:set_string("motor", "")
                 elevator.build_motor(motorhash)
-                minetest.chat_send_player(sender:get_player_name(), "Recalibrated to a new motor, please try again.")
+                minetest.chat_send_player(sender:get_player_name(), S("Recalibrated to a new motor, please try again."))
                 return true
             end
         end
         if not motor then
-            minetest.chat_send_player(sender:get_player_name(), "This elevator is not attached to a motor.")
+            minetest.chat_send_player(sender:get_player_name(), S("This elevator is not attached to a motor."))
             return true
         end
         if not elevator.formspecs[sender:get_player_name()][2] or not elevator.formspecs[sender:get_player_name()][2][minetest.explode_textlist_event(fields.target).index] then
@@ -66,7 +71,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
         if target then
             -- Final check.
             if elevator.boxes[motorhash] then
-                minetest.chat_send_player(sender:get_player_name(), "This elevator is in use.")
+                minetest.chat_send_player(sender:get_player_name(), S("This elevator is in use."))
                 return true
             end
             local obj = elevator.create_box(motorhash, pos, target, sender)
@@ -81,7 +86,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
                 end
             end
         else
-            minetest.chat_send_player(sender:get_player_name(), "This target is invalid.")
+            minetest.chat_send_player(sender:get_player_name(), S("This target is invalid."))
             return true
         end
         return true
