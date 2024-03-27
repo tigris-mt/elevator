@@ -1,0 +1,29 @@
+# textdomain: elevator
+
+##[ components.lua ]##
+Elevator Shaft=
+An elevator shaft that connects elevators to other elevators and motors.=
+Building a vertical stack of elevators and shafts with an elevator motor on top allows vertical transportation.=
+Elevator Motor=
+The engine powering an elevator shaft. Placed at the top.=
+Place the motor on the top of a stack of elevators and elevator shafts. The elevators will activate and you can then use them.=
+Elevator=
+An active elevator, ready for transporting.=
+An inactive elevator, not connected to a motor.=
+Step inside this elevator and use it (right-click) to be transported to any other elevator along the shaft.=
+This elevator is inactive; it is disconnected from a motor. It may be extended with shafts and other elevators in a vertical line with an elevator motor on top to power the whole shaft and enable transport.=
+Click once to travel.=
+Set label=
+No targets available.=
+This elevator is inactive.=
+
+##[ components.lua ]##
+##[ formspecs.lua ]##
+This elevator is in use.=
+
+##[ formspecs.lua ]##
+You are now using the elevator.@nUpgrade Minetest to avoid this dialog.=
+Close=
+Recalibrated to a new motor, please try again.=
+This elevator is not attached to a motor.=
+This target is invalid.=

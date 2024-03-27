@@ -1,3 +1,6 @@
+local S = minetest.get_translator("elevator")
+local F = minetest.formspec_escape
+local FS = function(...) return F(S(...)) end
 
 local phash = elevator.phash
 local get_node = elevator.get_node
@@ -86,9 +89,9 @@ if minetest.global_exists("screwdriver") then
 end
 
 minetest.register_node("elevator:shaft", {
-    description = "Elevator Shaft",
-    _doc_items_longdesc = "An elevator shaft that connects elevators to other elevators and motors.",
-    _doc_items_usagehelp = "Building a vertical stack of elevators and shafts with an elevator motor on top allows vertical transportation.",
+    description = S("Elevator Shaft"),
+    _doc_items_longdesc = S("An elevator shaft that connects elevators to other elevators and motors."),
+    _doc_items_usagehelp = S("Building a vertical stack of elevators and shafts with an elevator motor on top allows vertical transportation."),
     tiles = { moditems.el_shaft_gfx },
     drawtype = "nodebox",
     use_texture_alpha = "clip",
@@ -130,9 +133,9 @@ minetest.register_node("elevator:shaft", {
   })
 
 minetest.register_node("elevator:motor", {
-    description = "Elevator Motor",
-    _doc_items_longdesc = "The engine powering an elevator shaft. Placed at the top.",
-    _doc_items_usagehelp = "Place the motor on the top of a stack of elevators and elevator shafts. The elevators will activate and you can then use them.",
+    description = S("Elevator Motor"),
+    _doc_items_longdesc = S("The engine powering an elevator shaft. Placed at the top."),
+    _doc_items_usagehelp = S("Place the motor on the top of a stack of elevators and elevator shafts. The elevators will activate and you can then use them."),
     tiles = {
         moditems.steel_block_image,
         moditems.steel_block_image,
@@ -247,7 +250,7 @@ for _,mode in ipairs({"on", "off"}) do
         cbox = box
     end
     minetest.register_node(nodename, {
-        description = "Elevator",
+        description = S("Elevator"),
         drawtype = "nodebox",
         sunlight_propagates = false,
         paramtype = "light",
@@ -255,8 +258,8 @@ for _,mode in ipairs({"on", "off"}) do
         on_rotate = moditems.on_rotate_disallow,
         climbable = true,
 
-        _doc_items_longdesc = on and "An active elevator, ready for transporting." or "An inactive elevator, not connected to a motor.",
-        _doc_items_usagehelp = on and "Step inside this elevator and use it (right-click) to be transported to any other elevator along the shaft." or "This elevator is inactive; it is disconnected from a motor. It may be extended with shafts and other elevators in a vertical line with an elevator motor on top to power the whole shaft and enable transport.",
+        _doc_items_longdesc = on and S("An active elevator, ready for transporting.") or S("An inactive elevator, not connected to a motor."),
+        _doc_items_usagehelp = on and S("Step inside this elevator and use it (right-click) to be transported to any other elevator along the shaft.") or S("This elevator is inactive; it is disconnected from a motor. It may be extended with shafts and other elevators in a vertical line with an elevator motor on top to power the whole shaft and enable transport."),
 
         selection_box = {
                 type = "fixed",
@@ -354,54 +357,54 @@ for _,mode in ipairs({"on", "off"}) do
                 for ji,jv in ipairs(motor.pnames) do
                     if tonumber(jv) ~= pos.y then
                         table.insert(tpnames, jv)
-                        table.insert(tpnames_l, (motor.labels[ji] and motor.labels[ji] ~= "") and (jv.." - "..minetest.formspec_escape(motor.labels[ji])) or jv)
+                        table.insert(tpnames_l, (motor.labels[ji] and motor.labels[ji] ~= "") and (jv.." - "..F(motor.labels[ji])) or jv)
                     end
                 end
                 elevator.formspecs[sender:get_player_name()] = {pos, tpnames}
                 if #tpnames > 0 then
                     if not minetest.is_protected(pos, sender:get_player_name()) then
                         formspec = "size[4,6]"
-                        .."label[0,0;Click once to travel.]"
+                        .."label[0,0;" .. FS("Click once to travel.") .. "]"
                         .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
-                        .."field[0.25,5.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                        .."button_exit[-0.05,5.5;4,1;setlabel;Set label]"
+                        .."field[0.25,5.25;4,0;label;;"..F(meta:get_string("label")).."]"
+                        .."button_exit[-0.05,5.5;4,1;setlabel;" .. FS("Set label") .. "]"
                     else
                         formspec = "size[4,4.4]"
-                        .."label[0,0;Click once to travel.]"
+                        .."label[0,0;" .. FS("Click once to travel.") .. "]"
                         .."textlist[-0.1,0.5;4,4;target;"..table.concat(tpnames_l, ",").."]"
                     end
                 else
                     if not minetest.is_protected(pos, sender:get_player_name()) then
                         formspec = "size[4,2]"
-                        .."label[0,0;No targets available.]"
-                        .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                        .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                        .."label[0,0;" .. FS("No targets available.") .. "]"
+                        .."field[0.25,1.25;4,0;label;;"..F(meta:get_string("label")).."]"
+                        .."button_exit[-0.05,1.5;4,1;setlabel;" .. FS("Set label") .. "]"
                     else
                         formspec = "size[4,0.4]"
-                        .."label[0,0;No targets available.]"
+                        .."label[0,0;" .. FS("No targets available.") .. "]"
                     end
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             elseif not elevator.motors[motorhash] then
                 if not minetest.is_protected(pos, sender:get_player_name()) then
                     formspec = "size[4,2]"
-                    .."label[0,0;This elevator is inactive.]"
-                    .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                    .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                    .."label[0,0;" .. FS("This elevator is inactive.") .. "]"
+                    .."field[0.25,1.25;4,0;label;;"..F(meta:get_string("label")).."]"
+                    .."button_exit[-0.05,1.5;4,1;setlabel;" .. FS("Set label") .. "]"
                 else
                     formspec = "size[4,0.4]"
-                    .."label[0,0;This elevator is inactive.]"
+                    .."label[0,0;" .. FS("This elevator is inactive.") .. "]"
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             elseif elevator.boxes[motorhash] then
                 if not minetest.is_protected(pos, sender:get_player_name()) then
                     formspec = "size[4,2]"
-                    .."label[0,0;This elevator is in use.]"
-                    .."field[0.25,1.25;4,0;label;;"..minetest.formspec_escape(meta:get_string("label")).."]"
-                    .."button_exit[-0.05,1.5;4,1;setlabel;Set label]"
+                    .."label[0,0;" .. FS("This elevator is in use.") .. "]"
+                    .."field[0.25,1.25;4,0;label;;"..F(meta:get_string("label")).."]"
+                    .."button_exit[-0.05,1.5;4,1;setlabel;" .. FS("Set label") .. "]"
                 else
                     formspec = "size[4,0.4]"
-                    .."label[0,0;This elevator is in use.]"
+                    .."label[0,0;" .. FS("This elevator is in use.") .. "]"
                 end
                 minetest.show_formspec(sender:get_player_name(), "elevator:elevator", formspec)
             end
